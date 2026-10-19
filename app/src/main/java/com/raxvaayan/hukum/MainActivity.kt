@@ -29,6 +29,8 @@ import java.util.Locale
 import java.util.concurrent.CountDownLatch
 import kotlin.concurrent.thread
 
+private val CLAIM = Regex("(kar diya|kar di |bhej diya|bhej di|bheja|set kar|khol diya|laga diya|chala diya|add kar|moklyu|mokli|moklavi|mokalyu|મોકલ|કરી દીધ|સેટ કર|ખોલી|મોકલી|मोकल|भेज दिया|कर दिया|sent|done|ho gaya|thai gayu|થઈ ગયુ)")
+
 class MainActivity : Activity(), ToolHost {
 
     override val ctx: Context get() = this
@@ -190,6 +192,9 @@ Rules:
 - Ride → ride_book (Uber default), phir screen_read se options bata. Book/confirm user dabayega.
 - Trading app (Angel One, Zerodha, Groww) mein share kharidna/bechna: open_app → search pe screen_tap → screen_type stock naam → result tap → BUY/SELL tap → screen_fill Qty (aur price agar diya) → user ko bolo "order ready, final BUY aap dabaiye". Final order button tool BLOCK karega, ye sahi hai.
 - screen_* tools: har 1-2 step ke baad screen_read. screen_back, screen_scroll, screen_fill (naam wale box mein likhna) bhi hain. 'BLOCKED' aaye to wahi ruk ke user ko bata.
+- "Live location" bheje: my_location se current location link le ke whatsapp_send kar, aur user ko bata ki ye abhi ki location hai (WhatsApp live-tracking nahi).
+- "kya hua", "kya bheja", "what happened" → pichhle tool results se sach bata. Tool nahi chala tha to "kuch nahi hua" bol.
+- Jawab user ki bhasha mein: Gujarati likhe to Gujarati, Hindi to Hindi/Hinglish.
 - Jo bilkul na ho, saaf bata do."""
     }
 
@@ -211,6 +216,9 @@ Rules:
         history.put(JSONObject().put("role", "user").put("content", text))
         thread {
             var reply = ""
+            val used = ArrayList<String>()
+            var nudged = false
+            var content2: String? = null
             try {
                 for (step in 0 until 16) {
                     trimHistory()
@@ -221,8 +229,19 @@ Rules:
                     val content = if (m.isNull("content")) "" else m.optString("content").trim()
                     val clean = JSONObject().put("role", "assistant").put("content", content)
                     if (calls != null && calls.length() > 0) clean.put("tool_calls", calls)
+                    if (calls == null || calls.length() == 0) {
+                        // Guard: model claims it did something but called no tool this turn → force a retry once.
+                        if (used.isEmpty() && !nudged && CLAIM.containsMatchIn(content.lowercase())) {
+                            nudged = true
+                            history.put(JSONObject().put("role", "system").put("content",
+                                "Tune koi tool call nahi kiya, isliye kuch hua NAHI. Abhi sahi tool call kar. Agar ye kaam kisi tool se nahi ho sakta to saaf bol 'ye nahi ho saka'. Bina tool ke kabhi 'kar diya/bhej diya/mokalyu' mat bol."))
+                            continue
+                        }
+                        if (used.isEmpty() && CLAIM.containsMatchIn(content.lowercase())) content2 = "⚠️ Kuch nahi hua — koi action nahi chala. Dobara thoda alag shabdon mein bolo."
+                        history.put(clean)
+                        reply = content2 ?: content; break
+                    }
                     history.put(clean)
-                    if (calls == null || calls.length() == 0) { reply = content; break }
                     for (i in 0 until calls.length()) {
                         val c = calls.getJSONObject(i)
                         val f = c.getJSONObject("function")
@@ -234,6 +253,7 @@ Rules:
                         val name = f.getString("name")
                         ui.post { thinking.text = "⚙️ ${name.replace('_', ' ')}…" }
                         val result = Tools.run(this, name, args)
+                        used.add((if (result.startsWith("NOT DONE") || result.startsWith("BLOCKED") || result.startsWith("Error") || result.contains("cancel kiya")) "❌ " else "✅ ") + name.replace('_', ' '))
                         history.put(JSONObject().put("role", "tool").put("tool_call_id", c.optString("id")).put("content", result))
                     }
                 }
@@ -242,7 +262,8 @@ Rules:
                 while (history.length() > mark) history.remove(history.length() - 1)
                 reply = "⚠️ ${e.message}"
             }
-            val out = reply.ifBlank { "Ho gaya ✅" }
+            val out = reply.ifBlank { if (used.isEmpty()) "Kuch nahi hua." else "Ho gaya ✅" } +
+                (if (used.isNotEmpty()) "\n\n" + used.distinct().joinToString(" · ") else "")
             ui.post {
                 thinking.text = out
                 busy = false
