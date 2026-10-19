@@ -11,8 +11,8 @@ android {
         applicationId = "com.raxvaayan.hukum"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.0.1"
         ndk { abiFilters += "arm64-v8a" }
     }
 
@@ -22,6 +22,9 @@ android {
             storePassword = "hukum123"
             keyAlias = "hukum"
             keyPassword = "hukum123"
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
         }
     }
 
@@ -38,6 +41,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
+    packaging { jniLibs { useLegacyPackaging = true } }
     lint { checkReleaseBuilds = false; abortOnError = false }
 }
 
