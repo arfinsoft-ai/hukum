@@ -78,6 +78,7 @@ class BootReceiver : android.content.BroadcastReceiver() {
         Prefs.init(ctx)
         Sched.reschedulePending(ctx)
         More.scheduleBrief(ctx)
+        Health.schedule(ctx)
         if (Prefs.bubble) Bubble.start(ctx)
     }
 }

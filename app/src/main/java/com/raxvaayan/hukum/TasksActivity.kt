@@ -47,6 +47,8 @@ class TasksActivity : Activity() {
         if (rems.isEmpty()) empty("Koi reminder nahi. Bolo: \"5 baje yaad dilana GST file karna\"")
         rems.forEach { card(it, false) }
 
+        healthSection()
+
         if (Prefs.briefOn) {
             section("🌅 Morning brief", -1)
             val c = nextBrief()
@@ -63,6 +65,56 @@ class TasksActivity : Activity() {
             lp(MATCH, WRAP).apply { topMargin = dp(28) })
     }
 
+    private fun healthSection() {
+        section("💪 Sehat aaj", -1)
+        val g = Health.Cfg(this)
+        val w = Health.water(this)
+        val r = hbox().apply { background = round(C.CARD, dp(14).toFloat()); setPadding(dp(14), dp(12), dp(10), dp(12)) }
+        r.addView(text("💧", 22f).apply { setPadding(0, 0, dp(12), 0) })
+        val col = vbox()
+        col.addView(text("Paani: $w / ${g.waterGoal} glass", 15f, C.TEXT, true))
+        col.addView(bar(w.toFloat() / g.waterGoal))
+        r.addView(col, lp(0, WRAP, 1f))
+        r.addView(text("+1", 16f, android.graphics.Color.BLACK, true).apply {
+            gravity = Gravity.CENTER; background = round(C.GOLD, dp(16).toFloat()); setPadding(dp(14), dp(6), dp(14), dp(6))
+            setOnClickListener { Health.addWater(this@TasksActivity); render() } }, lp(WRAP, WRAP).apply { leftMargin = dp(10) })
+        box.addView(r, lp(MATCH, WRAP).apply { topMargin = dp(8) })
+
+        val sr = hbox().apply { background = round(C.CARD, dp(14).toFloat()); setPadding(dp(14), dp(12), dp(10), dp(12)) }
+        sr.addView(text("🚶", 22f).apply { setPadding(0, 0, dp(12), 0) })
+        val scol = vbox()
+        val st = text("Steps: …", 15f, C.TEXT, true); scol.addView(st)
+        val sbar = bar(0f); scol.addView(sbar)
+        sr.addView(scol, lp(0, WRAP, 1f))
+        box.addView(sr, lp(MATCH, WRAP).apply { topMargin = dp(8) })
+        Thread {
+            val n = Health.steps(this)
+            runOnUiThread {
+                st.text = if (n != null) "Steps: $n / ${g.stepGoal}" else "Steps: ⚙️ → 1. Permissions (Physical activity) do"
+                (sbar.getChildAt(0).layoutParams as LinearLayout.LayoutParams).weight = ((n ?: 0).toFloat() / g.stepGoal).coerceIn(0f, 1f)
+                (sbar.getChildAt(1).layoutParams as LinearLayout.LayoutParams).weight = 1f - ((n ?: 0).toFloat() / g.stepGoal).coerceIn(0f, 1f)
+                sbar.requestLayout()
+            }
+        }.start()
+
+        for (i in 0 until g.meds.length()) {
+            val m = g.meds.getJSONObject(i); val nm = m.getString("name"); val done = Health.medTaken(this, nm)
+            row("💊", nm, "Roz ${m.getString("time")} · ${if (done) "aaj le li ✅" else "aaj baaki ⏳"}", if (done) null else ({ Health.markMed(this, nm); render() }), "✓")
+        }
+        val up = Health.upcoming(this, 4)
+        if (up.isEmpty()) empty("Sehat reminders OFF. Bolo: \"har ghante paani yaad dilana\", \"roz 8000 steps\", \"11 baje sona hai\" — ya ⚙️ → 💪 Sehat.")
+        else box.addView(text("Agle: " + up.joinToString("  ·  ") { "${it.second} ${TIME.format(Date(it.first))}" }, 12.5f, C.MUTED),
+            lp(MATCH, WRAP).apply { topMargin = dp(8) })
+    }
+
+    private fun bar(f: Float): LinearLayout {
+        val b = hbox().apply { background = round(C.LINE, dp(4).toFloat()) }
+        val p = f.coerceIn(0f, 1f)
+        b.addView(android.view.View(this).apply { background = round(C.GOLD, dp(4).toFloat()) }, lp(0, dp(6), p))
+        b.addView(android.view.View(this), lp(0, dp(6), 1f - p))
+        return b.also { it.layoutParams = lp(MATCH, dp(6)).apply { topMargin = dp(6) } }
+    }
+
     private fun card(o: JSONObject, isAct: Boolean) {
         val t = o.getLong("at")
         val txt = o.getString("t")
@@ -77,14 +129,14 @@ class TasksActivity : Activity() {
         }
     }
 
-    private fun row(icon: String, title: String, sub: String, onCancel: (() -> Unit)?) {
+    private fun row(icon: String, title: String, sub: String, onCancel: (() -> Unit)?, act: String = "✕") {
         val r = hbox().apply { background = round(C.CARD, dp(14).toFloat()); setPadding(dp(14), dp(12), dp(10), dp(12)) }
         r.addView(text(icon, 22f).apply { setPadding(0, 0, dp(12), 0) })
         val col = vbox()
         col.addView(text(title, 15f, C.TEXT, true).apply { maxLines = 3 })
         col.addView(text(sub, 12.5f, C.GOLD).apply { setPadding(0, dp(3), 0, 0) })
         r.addView(col, lp(0, WRAP, 1f))
-        if (onCancel != null) r.addView(text("✕", 18f, C.MUTED).apply {
+        if (onCancel != null) r.addView(text(act, 18f, if (act == "✕") C.MUTED else C.GREEN).apply {
             gravity = Gravity.CENTER; setPadding(dp(12), dp(6), dp(6), dp(6)); setOnClickListener { onCancel() } })
         box.addView(r, lp(MATCH, WRAP).apply { topMargin = dp(8) })
     }

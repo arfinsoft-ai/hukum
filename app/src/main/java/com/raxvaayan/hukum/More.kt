@@ -325,7 +325,7 @@ object More {
     fun fullBrief(ctx: Context, base: String): String {
         val w = weather(ctx, "")
         val n = news("").lines().take(3).joinToString("\n")
-        return "$base\n\n🌤️ $w\n\n📰 Headlines:\n$n"
+        return "$base\n\n🌤️ $w\n\n" + Health.status(ctx) + "\n\n📰 Headlines:\n$n"
     }
 
     class BriefAlarm : BroadcastReceiver() {

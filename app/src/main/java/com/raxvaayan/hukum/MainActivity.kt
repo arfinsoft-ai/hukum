@@ -52,6 +52,7 @@ class MainActivity : Activity(), ToolHost {
         Prefs.init(this)
         Sched.reschedulePending(this)
         More.scheduleBrief(this)
+        Health.schedule(this)
         if (Prefs.bubble) Bubble.start(this)
         buildUi()
         tts = TextToSpeech(this) { s ->
@@ -213,6 +214,7 @@ Rules:
 - "Live location" bheje: my_location se current location link le ke whatsapp_send kar, aur user ko bata ki ye abhi ki location hai (WhatsApp live-tracking nahi).
 - "kya hua", "kya bheja", "what happened" → pichhle tool results se sach bata. Tool nahi chala tha to "kuch nahi hua" bol.
 - Jawab user ki bhasha mein: Gujarati likhe to Gujarati, Hindi to Hindi/Hinglish.
+- Sehat: "paani yaad dilana", "walk", "uth ke chalne ka reminder", "BP ki goli 9 baje", "11 baje sona hai" → health_setup. "paani piya", "goli le li" → health_log. "aaj kitna paani/steps" → health_status. Medical salah mat do; dawai/dose user jo bole wahi save kar.
 - Jo bilkul na ho, saaf bata do."""
     }
 

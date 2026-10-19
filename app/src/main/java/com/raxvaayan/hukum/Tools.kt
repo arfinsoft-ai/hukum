@@ -89,13 +89,13 @@ object Tools {
             .put(fn("open_app", "Phone ki koi app kholo.",
                 JSONObject().put("app", p("string", "app ka naam, jaise YouTube, Blinkit, Uber")),
                 listOf("app")))
-            .also { Extra.defs(it); More.defs(it) }
+            .also { Extra.defs(it); More.defs(it); Health.defs(it) }
     }
 
     private const val NO_ACC = "NOT DONE: Accessibility OFF hai — Settings ⚙️ → 2. Accessibility ON karwao."
 
     fun run(h: ToolHost, name: String, a: JSONObject): String = try {
-        More.run(h, name, a) ?: Extra.run(h, name, a) ?: when (name) {
+        Health.run(h, name, a) ?: More.run(h, name, a) ?: Extra.run(h, name, a) ?: when (name) {
             "set_alarm" -> alarm(h, a)
             "cancel_alarm" -> cancelAlarm(h, a)
             "set_timer" -> timer(h, a)

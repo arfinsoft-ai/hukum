@@ -120,6 +120,20 @@ class SettingsActivity : Activity() {
         toggle("Roz subah khud brief sunao (mausam, meetings, missed calls, news)", Prefs.briefOn) { Prefs.briefOn = it }
         val bt = field("Brief time (HH:mm)", Prefs.briefTime)
 
+        section("💪 Sehat")
+        val hc = Health.Cfg(this)
+        toggle("💧 Paani reminder", hc.waterOn) { v -> Health.set(this) { putBoolean("waterOn", v) } }
+        val wEvery = field("Har kitne minute (paani)", hc.waterEvery.toString())
+        val wGoal = field("Glass / din", hc.waterGoal.toString())
+        toggle("🚶 Walk / steps nudge (dopahar + shaam)", hc.walkOn) { v ->
+            if (v && android.os.Build.VERSION.SDK_INT >= 29 && !has(Manifest.permission.ACTIVITY_RECOGNITION)) requestPermissions(arrayOf(Manifest.permission.ACTIVITY_RECOGNITION), 3)
+            Health.set(this) { putBoolean("walkOn", v) } }
+        val sGoal = field("Steps goal / din", hc.stepGoal.toString())
+        toggle("🧍 Har ghante uth ke chalne ka break (10–7)", hc.sitOn) { v -> Health.set(this) { putBoolean("sitOn", v) } }
+        toggle("😴 Sone ka reminder (30 min pehle)", hc.bedOn) { v -> Health.set(this) { putBoolean("bedOn", v) } }
+        val bTime = field("Sone ka time (HH:mm)", hc.bedTime)
+        note("Dawai reminder bolke add karo: \"roz 9 baje BP ki goli yaad dilana\". Sab data sirf phone mein rehta hai.")
+
         section("🫧 Extras")
         toggle("Floating 👑 bubble (har app ke upar)", Prefs.bubble) {
             Prefs.bubble = it
@@ -138,6 +152,12 @@ class SettingsActivity : Activity() {
             Prefs.dhanToken = dhan.text.toString()
             Prefs.briefTime = bt.text.toString().ifBlank { "08:00" }
             More.scheduleBrief(this)
+            Health.set(this) {
+                wEvery.text.toString().toIntOrNull()?.let { putInt("waterEvery", it) }
+                wGoal.text.toString().toIntOrNull()?.let { putInt("waterGoal", it) }
+                sGoal.text.toString().toIntOrNull()?.let { putInt("stepGoal", it) }
+                bTime.text.toString().takeIf { it.contains(":") }?.let { putString("bedTime", it.trim()) }
+            }
             Toast.makeText(this, "Saved ✅", Toast.LENGTH_SHORT).show()
             finish()
         }, lp(MATCH, WRAP).apply { topMargin = dp(24) })
@@ -150,6 +170,7 @@ class SettingsActivity : Activity() {
             Manifest.permission.READ_CALL_LOG, Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR,
             Manifest.permission.READ_SMS, Manifest.permission.SEND_SMS, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
         if (android.os.Build.VERSION.SDK_INT >= 33) p.add(Manifest.permission.POST_NOTIFICATIONS)
+        if (android.os.Build.VERSION.SDK_INT >= 29) p.add(Manifest.permission.ACTIVITY_RECOGNITION)
         return p.toTypedArray()
     }
 
