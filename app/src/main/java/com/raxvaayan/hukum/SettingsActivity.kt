@@ -113,9 +113,22 @@ class SettingsActivity : Activity() {
         waRow.addView(waBtn)
         box.addView(waRow, lp(MATCH, WRAP).apply { topMargin = dp(10) })
 
+        section("📈 Dhan (trading)")
+        val dhan = field("Dhan access-token", Prefs.dhanToken, secret = true)
+
+        section("🫧 Extras")
+        toggle("Floating 👑 bubble (har app ke upar)", Prefs.bubble) {
+            Prefs.bubble = it
+            if (it) {
+                if (Bubble.canDraw(this)) Bubble.start(this)
+                else startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
+            } else Bubble.stop(this)
+        }
+
         box.addView(btn("💾 Save") {
             Prefs.baseUrl = url.text.toString(); Prefs.apiKey = key.text.toString()
             Prefs.model = model.text.toString(); Prefs.userName = name.text.toString().ifBlank { "Ravi" }
+            Prefs.dhanToken = dhan.text.toString()
             Toast.makeText(this, "Saved ✅", Toast.LENGTH_SHORT).show()
             finish()
         }, lp(MATCH, WRAP).apply { topMargin = dp(24) })
@@ -124,7 +137,8 @@ class SettingsActivity : Activity() {
     override fun onResume() { super.onResume(); checks.forEach { it() } }
 
     private fun perms(): Array<String> {
-        val p = arrayListOf(Manifest.permission.READ_CONTACTS, Manifest.permission.CALL_PHONE, Manifest.permission.RECORD_AUDIO)
+        val p = arrayListOf(Manifest.permission.READ_CONTACTS, Manifest.permission.CALL_PHONE, Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.READ_CALL_LOG, Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR)
         if (android.os.Build.VERSION.SDK_INT >= 33) p.add(Manifest.permission.POST_NOTIFICATIONS)
         return p.toTypedArray()
     }

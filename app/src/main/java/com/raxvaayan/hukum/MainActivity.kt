@@ -47,6 +47,8 @@ class MainActivity : Activity(), ToolHost {
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
         Prefs.init(this)
+        Sched.reschedulePending(this)
+        if (Prefs.bubble) Bubble.start(this)
         buildUi()
         tts = TextToSpeech(this) { s ->
             ttsReady = s == TextToSpeech.SUCCESS
@@ -178,7 +180,10 @@ Rules:
 - Message ke words: "X ko ok bhejo", "X ko reply karo ok", "ओके" → message text "OK". Hukum mein jo shabd message lagte hain wahi bhej; sirf tab poochh jab message ka koi text hi na ho.
 - Voice typing naam bigaad deta hai ("ध्रुवीय" = Dhruv). Naam English mein contact field mein de. Tool "milte-julte naam" de to user se ek line mein poochh "Dhruv Patel?" jaisa.
 - Blinkit/grocery order: blinkit_add se items cart mein daal (Hindi/Gujarati item naam English mein translate kar, jaise "बफैलो मिल्क" → "buffalo milk", "दूध" → "milk"). Checkout/payment KABHI nahi — user khud karega.
-- Jo kaam tools se nahi hota (Uber booking abhi nahi), batado aur open_app se app khol do."""
+- Reminder/"yaad dilana" → remind (at = 'yyyy-MM-dd HH:mm', current time se calculate). "note karo"/"yaad rakho" permanent baat → memory_save.
+- Torch/volume/silent/DND/WiFi/Bluetooth → device_control. "kisne call kiya"/missed call → call_log. Rasta/navigation/nearby → navigate. Meeting add/dekho → calendar_add/calendar_read. Trading P&L/positions/holdings → dhan_portfolio. "subah ka brief"/"aaj kya hai" → morning_brief.
+- Uber/Rapido/ride book karna abhi nahi hota: open_app se app khol do, phir screen_tap/screen_type se pickup-drop bhar sakta hai, par book/confirm/pay button user dabayega.
+- Jo bilkul na ho, saaf bata do."""
     }
 
     private fun trimHistory() {

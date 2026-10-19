@@ -89,12 +89,13 @@ object Tools {
             .put(fn("open_app", "Phone ki koi app kholo.",
                 JSONObject().put("app", p("string", "app ka naam, jaise YouTube, Blinkit, Uber")),
                 listOf("app")))
+            .also { Extra.defs(it) }
     }
 
     private const val NO_ACC = "NOT DONE: Accessibility OFF hai — Settings ⚙️ → 2. Accessibility ON karwao."
 
     fun run(h: ToolHost, name: String, a: JSONObject): String = try {
-        when (name) {
+        Extra.run(h, name, a) ?: when (name) {
             "set_alarm" -> alarm(h, a)
             "cancel_alarm" -> cancelAlarm(h, a)
             "set_timer" -> timer(h, a)
@@ -249,14 +250,25 @@ object Tools {
         return if (err == null) "DONE: ${if (front) "front" else "back"} camera se photo click kar di (Gallery mein hai)." else "NOT DONE: $err."
     }
 
+    private val appAlias = mapOf(
+        "angelbroking" to "angelone", "angel" to "angelone", "angelbroker" to "angelone",
+        "phonepay" to "phonepe", "gpay" to "googlepay", "gpayupi" to "googlepay",
+        "insta" to "instagram", "wa" to "whatsapp", "yt" to "youtube", "maps" to "googlemaps",
+        "zerodha" to "kite", "dhanapp" to "dhan")
+
     private fun openApp(h: ToolHost, a: JSONObject): String {
-        val q = a.getString("app").lowercase().replace(" ", "")
+        var q = a.getString("app").lowercase().replace(" ", "")
+        q = appAlias[q] ?: q
         val pm = h.ctx.packageManager
         val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
         val apps = pm.queryIntentActivities(launcher, 0)
         val match = apps.firstOrNull { it.loadLabel(pm).toString().lowercase().replace(" ", "") == q }
             ?: apps.firstOrNull { it.loadLabel(pm).toString().lowercase().replace(" ", "").contains(q) }
-            ?: return "'${a.getString("app")}' app nahi mili."
+            ?: run {
+                val names = apps.map { it.loadLabel(pm).toString() }.distinct()
+                val near = names.filter { it.lowercase().replace(" ", "").let { n -> n.contains(q.take(4)) || q.contains(n.take(4)) } }.take(5)
+                return "'${a.getString("app")}' app install nahi hai." + if (near.isNotEmpty()) " Milti-julti: ${near.joinToString(", ")}." else ""
+            }
         val i = pm.getLaunchIntentForPackage(match.activityInfo.packageName)?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             ?: return "App launch nahi ho saki."
         h.onUi { h.ctx.startActivity(i); "" }

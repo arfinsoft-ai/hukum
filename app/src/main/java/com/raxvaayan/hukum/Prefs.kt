@@ -42,4 +42,10 @@ object Prefs {
     var waPkg: String
         get() = s("waPkg", "com.whatsapp")
         set(v) = sp.edit().putString("waPkg", v).apply()
+    var dhanToken: String
+        get() = s("dhanToken", "")
+        set(v) = sp.edit().putString("dhanToken", v.trim()).apply()
+    var bubble: Boolean
+        get() = b("bubble", false)
+        set(v) = sp.edit().putBoolean("bubble", v).apply()
 }
