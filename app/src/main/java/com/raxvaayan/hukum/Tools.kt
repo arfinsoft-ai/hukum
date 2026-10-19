@@ -37,6 +37,11 @@ object Tools {
                     .put("days", JSONObject().put("type", "array").put("items", JSONObject().put("type", "string"))
                         .put("description", "repeat days, optional: mon,tue,wed,thu,fri,sat,sun")),
                 listOf("hour", "minute")))
+            .put(fn("cancel_alarm", "Pehle se laga alarm band/cancel karo. hour/minute do; time na pata ho to bina params ke call karo (alarm list khulegi).",
+                JSONObject()
+                    .put("hour", p("integer", "0-23, optional"))
+                    .put("minute", p("integer", "0-59, optional")),
+                listOf()))
             .put(fn("set_timer", "Countdown timer lagao.",
                 JSONObject().put("seconds", p("integer", "total seconds")).put("label", p("string", "optional")),
                 listOf("seconds")))
@@ -69,6 +74,7 @@ object Tools {
     fun run(h: ToolHost, name: String, a: JSONObject): String = try {
         when (name) {
             "set_alarm" -> alarm(h, a)
+            "cancel_alarm" -> cancelAlarm(h, a)
             "set_timer" -> timer(h, a)
             "call" -> call(h, a)
             "whatsapp_send" -> waSend(h, a)
@@ -100,6 +106,29 @@ object Tools {
         if (days.isNotEmpty()) i.putExtra(AlarmClock.EXTRA_DAYS, days)
         h.onUi { h.ctx.startActivity(i); "" }
         return "Alarm set: %02d:%02d %s".format(hr, mn, if (days.isNotEmpty()) "(repeat)" else "")
+    }
+
+    private fun cancelAlarm(h: ToolHost, a: JSONObject): String {
+        if (!a.has("hour")) {
+            val i = Intent(AlarmClock.ACTION_SHOW_ALARMS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            h.onUi { h.ctx.startActivity(i); "" }
+            return "Alarm list khol di, user khud band kare."
+        }
+        val hr = a.getInt("hour"); val mn = a.optInt("minute", 0)
+        val i = Intent(AlarmClock.ACTION_DISMISS_ALARM)
+            .putExtra(AlarmClock.EXTRA_ALARM_SEARCH_MODE, AlarmClock.ALARM_SEARCH_MODE_TIME)
+            .putExtra(AlarmClock.EXTRA_HOUR, hr)
+            .putExtra(AlarmClock.EXTRA_MINUTES, mn)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        return h.onUi {
+            if (i.resolveActivity(h.ctx.packageManager) != null) {
+                h.ctx.startActivity(i)
+                "Alarm %02d:%02d cancel karne bhej diya (Clock app confirm maang sakta hai).".format(hr, mn)
+            } else {
+                h.ctx.startActivity(Intent(AlarmClock.ACTION_SHOW_ALARMS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                "Is Clock app mein direct cancel support nahi, alarm list khol di."
+            }
+        }
     }
 
     private fun timer(h: ToolHost, a: JSONObject): String {
