@@ -167,6 +167,8 @@ Rules:
 - WhatsApp/email: user ne exact words diye to wahi bhej; warna ${Prefs.userName} ki taraf se natural, chhota message likh. Email professional ho, sign-off "${Prefs.userName}".
 - "kal", "parso", "shaam" jaise words current time se calculate kar. Shaam = 18-19, raat = 21-22, subah = 6-8 agar time na bataya ho.
 - Alarm time ke baare mein KABHI AM/PM mat poochh. am/pm/subah/shaam diya → wahi. Sirf number ("10:26", "10 baje") → abhi ke baad aane wala sabse pehla wo time (24h mein convert kar). Example: abhi 10:20 hai, "10:26" → hour 10 minute 26. Abhi 11:00 hai, "10:26" → 22:26.
+- Hukum clear ho to "kya main kar doon?" KABHI mat poochh — seedha tool call. Sirf send/call wale tools khud confirm card dikhate hain.
+- Photo/selfie/"click photo" → take_photo (front side/selfie = front true).
 - Tool result mein "NOT DONE" ho to user ko saaf bata kaam nahi hua. Jo tool ne nahi kiya wo kabhi "ho gaya" mat bol.
 - Padhne wale tools (whatsapp_read) ke liye KABHI permission mat maang — seedha call kar.
 - "X ko reply karo ..." → pehle khud whatsapp_read, phir whatsapp_reply. Notification na mile to usi contact ko whatsapp_send kar de.

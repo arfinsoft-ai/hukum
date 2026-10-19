@@ -52,3 +52,42 @@ object Clock {
         return "%02d:%s ka alarm list mein nahi mila".format(hour, mm)
     }
 }
+
+/** Opens camera (front/back) and presses the shutter via Accessibility. Background thread only. */
+object Cam {
+    private fun all(n: AccessibilityNodeInfo) = ArrayList<AccessibilityNodeInfo>().also { fun w(x: AccessibilityNodeInfo?, d: Int) { if (x == null || d > 40) return; it.add(x); for (i in 0 until x.childCount) w(x.getChild(i), d + 1) }; w(n, 0) }
+    private fun desc(n: AccessibilityNodeInfo) = ((n.contentDescription ?: "").toString() + " " + (n.text ?: "") + " " + (n.viewIdResourceName ?: "")).lowercase()
+    private fun click(n: AccessibilityNodeInfo): Boolean { var c: AccessibilityNodeInfo? = n; repeat(4) { val x = c ?: return false; if (x.isClickable) return x.performAction(AccessibilityNodeInfo.ACTION_CLICK); c = x.parent }; return false }
+
+    fun shoot(svc: HukumAccess, front: Boolean): String? {
+        val i = android.content.Intent(android.provider.MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA)
+            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            .putExtra("android.intent.extras.CAMERA_FACING", if (front) 1 else 0)
+            .putExtra("android.intent.extras.LENS_FACING_FRONT", if (front) 1 else 0)
+            .putExtra("android.intent.extra.USE_FRONT_CAMERA", front)
+            .putExtra("com.google.assistant.extra.USE_FRONT_CAMERA", front)
+        try { svc.startActivity(i) } catch (e: Exception) { return "camera app nahi khula" }
+        Thread.sleep(2500)
+        val deadline = System.currentTimeMillis() + 10_000
+        var switched = false
+        while (System.currentTimeMillis() < deadline) {
+            val root = svc.rootInActiveWindow
+            if (root == null || root.packageName?.toString() == svc.packageName) { Thread.sleep(400); continue }
+            val nodes = all(root).filter { it.isVisibleToUser }
+            if (!switched) {
+                val wrong = if (front) listOf("switch to front", "front camera", "selfie") else listOf("switch to rear", "switch to back", "rear camera", "back camera")
+                nodes.firstOrNull { n -> val d = desc(n); wrong.any { d.contains(it) } }?.let { click(it); switched = true; Thread.sleep(1500); continue }
+                switched = true
+            }
+            val shutter = nodes.firstOrNull { n -> val d = desc(n); listOf("shutter", "take photo", "take picture", "capture", "photo button", "click photo").any { d.contains(it) } }
+            if (shutter != null && click(shutter)) { Thread.sleep(1500); return null }
+            Thread.sleep(500)
+        }
+        // Fallback: tap bottom-centre where every camera app keeps the shutter.
+        val dm = svc.resources.displayMetrics
+        val p = android.graphics.Path().apply { moveTo(dm.widthPixels / 2f, dm.heightPixels * 0.86f) }
+        val g = android.accessibilityservice.GestureDescription.Builder()
+            .addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(p, 0, 80)).build()
+        return if (svc.dispatchGesture(g, null, null)) { Thread.sleep(1500); null } else "shutter button nahi mila"
+    }
+}

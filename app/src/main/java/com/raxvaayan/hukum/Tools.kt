@@ -73,6 +73,9 @@ object Tools {
                         .put("required", JSONArray(listOf("name"))))
                     .put("description", "items list")),
                 listOf("items")))
+            .put(fn("take_photo", "Camera khol ke photo khud click karo. front=true selfie/front side ke liye.",
+                JSONObject().put("front", p("boolean", "true = front/selfie camera, false = back")),
+                listOf()))
             .put(fn("open_app", "Phone ki koi app kholo.",
                 JSONObject().put("app", p("string", "app ka naam, jaise YouTube, Blinkit, Uber")),
                 listOf("app")))
@@ -89,6 +92,7 @@ object Tools {
             "whatsapp_reply" -> waReply(h, a)
             "send_email" -> email(h, a)
             "blinkit_add" -> blinkit(a)
+            "take_photo" -> photo(a)
             "open_app" -> openApp(h, a)
             else -> "Unknown tool $name"
         }
@@ -220,6 +224,13 @@ object Tools {
         val r = Blinkit.addAll(svc, items)
         svc.backToHukum()
         return r
+    }
+
+    private fun photo(a: JSONObject): String {
+        val svc = HukumAccess.inst ?: return "NOT DONE: Accessibility OFF hai, photo click nahi kar sakta."
+        val front = a.optBoolean("front", false)
+        val err = Cam.shoot(svc, front)
+        return if (err == null) "DONE: ${if (front) "front" else "back"} camera se photo click kar di (Gallery mein hai)." else "NOT DONE: $err."
     }
 
     private fun openApp(h: ToolHost, a: JSONObject): String {
