@@ -124,9 +124,7 @@ class TasksActivity : Activity() {
             else -> "⚡"
         }
         val title = txt.removePrefix(icon).trim()
-        row(icon, title, "${dayLabel(t)} ${TIME.format(Date(t))} · ${left(t)}") {
-            Sched.cancelId(this, o.getInt("id")); render()
-        }
+        row(icon, title, "${dayLabel(t)} ${TIME.format(Date(t))} · ${left(t)}", { Sched.cancelId(this, o.getInt("id")); render() })
     }
 
     private fun row(icon: String, title: String, sub: String, onCancel: (() -> Unit)?, act: String = "✕") {
