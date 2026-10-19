@@ -109,26 +109,11 @@ object Tools {
     }
 
     private fun cancelAlarm(h: ToolHost, a: JSONObject): String {
-        if (!a.has("hour")) {
-            val i = Intent(AlarmClock.ACTION_SHOW_ALARMS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            h.onUi { h.ctx.startActivity(i); "" }
-            return "Alarm list khol di, user khud band kare."
-        }
-        val hr = a.getInt("hour"); val mn = a.optInt("minute", 0)
-        val i = Intent(AlarmClock.ACTION_DISMISS_ALARM)
-            .putExtra(AlarmClock.EXTRA_ALARM_SEARCH_MODE, AlarmClock.ALARM_SEARCH_MODE_TIME)
-            .putExtra(AlarmClock.EXTRA_HOUR, hr)
-            .putExtra(AlarmClock.EXTRA_MINUTES, mn)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        return h.onUi {
-            if (i.resolveActivity(h.ctx.packageManager) != null) {
-                h.ctx.startActivity(i)
-                "Alarm %02d:%02d cancel karne bhej diya (Clock app confirm maang sakta hai).".format(hr, mn)
-            } else {
-                h.ctx.startActivity(Intent(AlarmClock.ACTION_SHOW_ALARMS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                "Is Clock app mein direct cancel support nahi, alarm list khol di."
-            }
-        }
+        // OnePlus/Oxygen Clock ignores silent dismiss intents, so open the alarm list directly.
+        val i = Intent(AlarmClock.ACTION_SHOW_ALARMS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        h.onUi { h.ctx.startActivity(i); "" }
+        val t = if (a.has("hour")) " (%02d:%02d)".format(a.getInt("hour"), a.optInt("minute", 0)) else ""
+        return "Phone ka Clock app direct cancel allow nahi karta. Alarm list khol di$t — user wahan ek tap se band kare."
     }
 
     private fun timer(h: ToolHost, a: JSONObject): String {
