@@ -168,5 +168,4 @@ object Contacts {
         }
         return sb.toString()
     }
-    }
 }
