@@ -66,6 +66,13 @@ object Tools {
                     .put("subject", p("string", "subject"))
                     .put("body", p("string", "poora email body")),
                 listOf("to", "subject", "body")))
+            .put(fn("blinkit_add", "Blinkit app mein items search karke cart mein ADD karo (qty ke saath). Payment/checkout nahi karta. Item naam English mein do (jaise 'buffalo milk', 'amul butter').",
+                JSONObject().put("items", JSONObject().put("type", "array")
+                    .put("items", JSONObject().put("type", "object")
+                        .put("properties", JSONObject().put("name", p("string", "item ka search naam, English")).put("qty", p("integer", "kitne, default 1")))
+                        .put("required", JSONArray(listOf("name"))))
+                    .put("description", "items list")),
+                listOf("items")))
             .put(fn("open_app", "Phone ki koi app kholo.",
                 JSONObject().put("app", p("string", "app ka naam, jaise YouTube, Blinkit, Uber")),
                 listOf("app")))
@@ -81,6 +88,7 @@ object Tools {
             "whatsapp_read" -> WaListener.summary()
             "whatsapp_reply" -> waReply(h, a)
             "send_email" -> email(h, a)
+            "blinkit_add" -> blinkit(a)
             "open_app" -> openApp(h, a)
             else -> "Unknown tool $name"
         }
@@ -193,6 +201,20 @@ object Tools {
         if (auto) HukumAccess.arm(gmail)
         h.onUi { h.ctx.startActivity(if (hasGmail) i else Intent.createChooser(i, "Email").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); "" }
         return if (auto) "Email ${ct.value} ko bheja ja raha hai (auto-send)." else "Email compose khul gaya, user Send dabaye."
+    }
+
+    private fun blinkit(a: JSONObject): String {
+        val svc = HukumAccess.inst ?: return "Blinkit mein add karne ke liye Accessibility (HUKUM Auto-Send) ON karna hoga — Settings ⚙️ → 2. Accessibility."
+        val arr = a.optJSONArray("items") ?: return "Items nahi diye."
+        val items = (0 until arr.length()).mapNotNull { i ->
+            val o = arr.optJSONObject(i) ?: return@mapNotNull null
+            val n = o.optString("name").trim()
+            if (n.isEmpty()) null else Blinkit.Item(n, o.optInt("qty", 1).coerceIn(1, 20))
+        }
+        if (items.isEmpty()) return "Items nahi diye."
+        val r = Blinkit.addAll(svc, items)
+        svc.backToHukum()
+        return r
     }
 
     private fun openApp(h: ToolHost, a: JSONObject): String {

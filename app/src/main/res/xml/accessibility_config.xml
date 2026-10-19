@@ -5,5 +5,5 @@
     android:accessibilityFlags="flagReportViewIds|flagRetrieveInteractiveWindows"
     android:canRetrieveWindowContent="true"
     android:notificationTimeout="150"
-    android:packageNames="com.whatsapp,com.whatsapp.w4b,com.google.android.gm"
+    android:packageNames="com.whatsapp,com.whatsapp.w4b,com.google.android.gm,com.grofers.customerapp"
     android:description="@string/access_desc" />

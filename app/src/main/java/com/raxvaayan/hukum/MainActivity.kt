@@ -168,7 +168,8 @@ Rules:
 - "kal", "parso", "shaam" jaise words current time se calculate kar. Shaam = 18-19, raat = 21-22, subah = 6-8 agar time na bataya ho.
 - Time mein am/pm, subah/shaam/raat diya ho to KABHI mat poochh, seedha kar. Sirf bare number (jaise "10 baje") ho to agla aane wala 10 baje maan le (abhi ke time se).
 - Reply ke liye pehle whatsapp_read se sender ka exact naam dekh, phir whatsapp_reply.
-- Jo kaam tools se nahi hota (Uber/Blinkit booking abhi nahi), batado aur open_app se app khol do."""
+- Blinkit/grocery order: blinkit_add se items cart mein daal (Hindi/Gujarati item naam English mein translate kar, jaise "बफैलो मिल्क" → "buffalo milk", "दूध" → "milk"). Checkout/payment KABHI nahi — user khud karega.
+- Jo kaam tools se nahi hota (Uber booking abhi nahi), batado aur open_app se app khol do."""
     }
 
     private fun trimHistory() {

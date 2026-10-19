@@ -39,7 +39,7 @@ class SettingsActivity : Activity() {
         setupRow("1. Permissions — contacts, call, mic, notifications", { perms().all { has(it) } }) {
             requestPermissions(perms(), 1)
         }
-        setupRow("2. Accessibility — WhatsApp/Gmail auto-send", { HukumAccess.isOn() }) {
+        setupRow("2. Accessibility — WhatsApp/Gmail auto-send + Blinkit", { HukumAccess.isOn() }) {
             Toast.makeText(this, "Installed apps → HUKUM Auto-Send → ON", Toast.LENGTH_LONG).show()
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         }
