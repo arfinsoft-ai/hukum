@@ -76,10 +76,22 @@ object Tools {
             .put(fn("take_photo", "Camera khol ke photo khud click karo. front=true selfie/front side ke liye.",
                 JSONObject().put("front", p("boolean", "true = front/selfie camera, false = back")),
                 listOf()))
+            .put(fn("youtube_play", "YouTube pe search karke pehla video play karo. News ke liye channel + 'live' ya 'latest news' query do (jaise 'India TV live').",
+                JSONObject().put("query", p("string", "search query")), listOf("query")))
+            .put(fn("screen_read", "Abhi phone screen par jo app khuli hai uske texts/buttons padho. Kisi app mein aage ka step karne se pehle use karo.",
+                JSONObject(), listOf()))
+            .put(fn("screen_tap", "Khuli app mein us text/button ko dabao (screen_read mein jo dikha).",
+                JSONObject().put("text", p("string", "button/text jaisa screen pe likha hai")).put("nth", p("integer", "same text multiple ho to kaunsa, default 1")),
+                listOf("text")))
+            .put(fn("screen_type", "Khuli app ke input box mein text likho.",
+                JSONObject().put("text", p("string", "text")).put("enter", p("boolean", "likhne ke baad search/enter dabana hai")),
+                listOf("text")))
             .put(fn("open_app", "Phone ki koi app kholo.",
                 JSONObject().put("app", p("string", "app ka naam, jaise YouTube, Blinkit, Uber")),
                 listOf("app")))
     }
+
+    private const val NO_ACC = "NOT DONE: Accessibility OFF hai — Settings ⚙️ → 2. Accessibility ON karwao."
 
     fun run(h: ToolHost, name: String, a: JSONObject): String = try {
         when (name) {
@@ -93,6 +105,10 @@ object Tools {
             "send_email" -> email(h, a)
             "blinkit_add" -> blinkit(a)
             "take_photo" -> photo(a)
+            "youtube_play" -> HukumAccess.inst?.let { Screen.youtube(it, a.getString("query")) } ?: NO_ACC
+            "screen_read" -> HukumAccess.inst?.let { Screen.read(it) } ?: NO_ACC
+            "screen_tap" -> HukumAccess.inst?.let { Screen.tap(it, a.getString("text"), a.optInt("nth", 1)) } ?: NO_ACC
+            "screen_type" -> HukumAccess.inst?.let { Screen.type(it, a.getString("text"), a.optBoolean("enter", true)) } ?: NO_ACC
             "open_app" -> openApp(h, a)
             else -> "Unknown tool $name"
         }

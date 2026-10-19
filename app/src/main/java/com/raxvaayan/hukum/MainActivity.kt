@@ -169,6 +169,9 @@ Rules:
 - Alarm time ke baare mein KABHI AM/PM mat poochh. am/pm/subah/shaam diya → wahi. Sirf number ("10:26", "10 baje") → abhi ke baad aane wala sabse pehla wo time (24h mein convert kar). Example: abhi 10:20 hai, "10:26" → hour 10 minute 26. Abhi 11:00 hai, "10:26" → 22:26.
 - Hukum clear ho to "kya main kar doon?" KABHI mat poochh — seedha tool call. Sirf send/call wale tools khud confirm card dikhate hain.
 - Photo/selfie/"click photo" → take_photo (front side/selfie = front true).
+- YouTube pe kuch chalana/play → youtube_play (news: "<channel> live", channel na ho to "hindi news live").
+- Kisi aur app mein kaam (jiska seedha tool nahi): open_app → screen_read → screen_tap/screen_type → screen_read se check. Kabhi "option nahi hai" mat bol jab tak ye try na kar le. Payment/pay/order place button KABHI mat dabana.
+- "fir se try karo", "dobara" = pichhla hukum dobara kar.
 - Tool result mein "NOT DONE" ho to user ko saaf bata kaam nahi hua. Jo tool ne nahi kiya wo kabhi "ho gaya" mat bol.
 - Padhne wale tools (whatsapp_read) ke liye KABHI permission mat maang — seedha call kar.
 - "X ko reply karo ..." → pehle khud whatsapp_read, phir whatsapp_reply. Notification na mile to usi contact ko whatsapp_send kar de.
@@ -197,7 +200,7 @@ Rules:
         thread {
             var reply = ""
             try {
-                for (step in 0 until 6) {
+                for (step in 0 until 12) {
                     trimHistory()
                     val msgs = JSONArray().put(JSONObject().put("role", "system").put("content", systemPrompt()))
                     for (i in 0 until history.length()) msgs.put(history.get(i))

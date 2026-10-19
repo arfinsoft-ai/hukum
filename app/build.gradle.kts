@@ -11,8 +11,8 @@ android {
         applicationId = "com.raxvaayan.hukum"
         minSdk = 26
         targetSdk = 34
-        versionCode = 9
-        versionName = "1.0.8"
+        versionCode = 10
+        versionName = "1.0.9"
         ndk { abiFilters += "arm64-v8a" }
     }
 
