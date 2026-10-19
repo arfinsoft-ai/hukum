@@ -36,7 +36,7 @@ class SettingsActivity : Activity() {
         setupRow("0. App info (restricted settings / auto-launch)", { true }) {
             startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
         }
-        setupRow("1. Permissions — contacts, call, mic, notifications", { perms().all { has(it) } }) {
+        setupRow("1. Permissions — contacts, call, mic, SMS, location, calendar", { perms().all { has(it) } }) {
             requestPermissions(perms(), 1)
         }
         setupRow("2. Accessibility — WhatsApp/Gmail auto-send + Blinkit", { HukumAccess.isOn() }) {
@@ -116,6 +116,10 @@ class SettingsActivity : Activity() {
         section("📈 Dhan (trading)")
         val dhan = field("Dhan access-token", Prefs.dhanToken, secret = true)
 
+        section("🌅 Morning brief (roz)")
+        toggle("Roz subah khud brief sunao (mausam, meetings, missed calls, news)", Prefs.briefOn) { Prefs.briefOn = it }
+        val bt = field("Brief time (HH:mm)", Prefs.briefTime)
+
         section("🫧 Extras")
         toggle("Floating 👑 bubble (har app ke upar)", Prefs.bubble) {
             Prefs.bubble = it
@@ -129,6 +133,8 @@ class SettingsActivity : Activity() {
             Prefs.baseUrl = url.text.toString(); Prefs.apiKey = key.text.toString()
             Prefs.model = model.text.toString(); Prefs.userName = name.text.toString().ifBlank { "Ravi" }
             Prefs.dhanToken = dhan.text.toString()
+            Prefs.briefTime = bt.text.toString().ifBlank { "08:00" }
+            More.scheduleBrief(this)
             Toast.makeText(this, "Saved ✅", Toast.LENGTH_SHORT).show()
             finish()
         }, lp(MATCH, WRAP).apply { topMargin = dp(24) })
@@ -138,7 +144,8 @@ class SettingsActivity : Activity() {
 
     private fun perms(): Array<String> {
         val p = arrayListOf(Manifest.permission.READ_CONTACTS, Manifest.permission.CALL_PHONE, Manifest.permission.RECORD_AUDIO,
-            Manifest.permission.READ_CALL_LOG, Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR)
+            Manifest.permission.READ_CALL_LOG, Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR,
+            Manifest.permission.READ_SMS, Manifest.permission.SEND_SMS, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
         if (android.os.Build.VERSION.SDK_INT >= 33) p.add(Manifest.permission.POST_NOTIFICATIONS)
         return p.toTypedArray()
     }

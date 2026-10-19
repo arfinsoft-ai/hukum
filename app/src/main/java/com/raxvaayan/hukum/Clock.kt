@@ -120,6 +120,13 @@ object Screen {
         val ns = all(r).filter { it.isVisibleToUser }
         val m = ns.filter { label(it).equals(text, true) }.ifEmpty { ns.filter { label(it).contains(text, true) } }
         val n = m.getOrNull(nth - 1) ?: return "NOT DONE: '$text' screen par nahi mila."
+        val l = label(n).lowercase()
+        val payWords = listOf("pay ", "pay₹", "pay now", "proceed to pay", "place order", "confirm order", "confirm & pay", "slide to", "swipe to", "book now", "confirm booking", "request ride", "confirm pickup")
+        if (payWords.any { l.startsWith(it.trim()) || l.contains(it) } || l == "pay")
+            return "BLOCKED: '$text' payment/final confirm button hai — ye user khud dabayega. User ko bolo screen ready hai."
+        val orderPad = ns.any { it.isEditable } && ns.any { x -> label(x).lowercase().let { it == "qty" || it.startsWith("quantity") || it.startsWith("qty") || it.contains("lots") } }
+        if (orderPad && (l == "buy" || l == "sell" || l.startsWith("buy ") || l.startsWith("sell ") || l.contains("place")))
+            return "BLOCKED: ye order pad ka final BUY/SELL hai — user khud dabayega. Order details bhar diye hain, user ko check karke dabane bolo."
         return if (click(n)) { Thread.sleep(1200); "DONE: '${label(n).take(50)}' dabaya." } else "NOT DONE: '$text' clickable nahi."
     }
 

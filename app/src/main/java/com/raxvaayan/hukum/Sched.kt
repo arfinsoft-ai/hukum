@@ -21,7 +21,7 @@ object Sched {
     private val HM = SimpleDateFormat("d MMM, hh:mm a", Locale.ENGLISH)
     private fun sp(ctx: Context) = ctx.getSharedPreferences("hukum_sched", Context.MODE_PRIVATE)
 
-    fun add(ctx: Context, atStr: String, text: String): String {
+    fun add(ctx: Context, atStr: String, text: String, act: String? = null): String {
         val t = Extra.parseTime(atStr) ?: return "NOT DONE: time '$atStr' samajh nahi aaya (yyyy-MM-dd HH:mm)."
         if (t < System.currentTimeMillis() - 60000) return "NOT DONE: wo time nikal chuka hai."
         val am = ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -30,12 +30,12 @@ object Sched {
             return "NOT DONE: exact-alarm permission chahiye — abhi screen khuli hai, 'Allow' karo, phir dobara bolo."
         }
         val id = (System.currentTimeMillis() % 1_000_000).toInt()
-        val arr = read(ctx); arr.put(JSONObject().put("id", id).put("at", t).put("t", text.trim()))
+        val arr = read(ctx); arr.put(JSONObject().put("id", id).put("at", t).put("t", text.trim()).apply { if (act != null) put("act", act) })
         sp(ctx).edit().putString("items", arr.toString()).apply()
-        val pi = pending(ctx, id, text)
+        val pi = pending(ctx, id, text, act)
         try { am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, t, pi) }
         catch (e: SecurityException) { am.set(AlarmManager.RTC_WAKEUP, t, pi) }
-        return "DONE: ${HM.format(Date(t))} par yaad dila dunga — \"$text\"."
+        return if (act != null) "DONE: ${HM.format(Date(t))} par ye kaam khud kar dunga — $text" else "DONE: ${HM.format(Date(t))} par yaad dila dunga — \"$text\"."
     }
 
     fun list(ctx: Context): String {
@@ -62,7 +62,7 @@ object Sched {
         val am = ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         for (i in 0 until arr.length()) {
             val o = arr.getJSONObject(i); val t = o.getLong("at")
-            if (t > now) try { am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, t, pending(ctx, o.getInt("id"), o.getString("t"))) } catch (_: Exception) {}
+            if (t > now) try { am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, t, pending(ctx, o.getInt("id"), o.getString("t"), o.optString("act").ifEmpty { null })) } catch (_: Exception) {}
         }
     }
 
@@ -74,8 +74,8 @@ object Sched {
 
     private fun read(ctx: Context) = try { JSONArray(sp(ctx).getString("items", "[]")) } catch (e: Exception) { JSONArray() }
 
-    private fun pending(ctx: Context, id: Int, text: String): PendingIntent {
-        val i = Intent(ctx, Alarm::class.java).setAction("fire_$id").putExtra("text", text).putExtra("id", id)
+    private fun pending(ctx: Context, id: Int, text: String, act: String? = null): PendingIntent {
+        val i = Intent(ctx, Alarm::class.java).setAction("fire_$id").putExtra("text", text).putExtra("id", id).putExtra("act", act)
         val fl = PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0)
         return PendingIntent.getBroadcast(ctx, id, i, fl)
     }
@@ -99,8 +99,14 @@ object Sched {
         override fun onReceive(ctx: Context, i: Intent) {
             val text = i.getStringExtra("text") ?: "Reminder"
             val id = i.getIntExtra("id", 1)
-            notifyNow(ctx, text, id)
+            val act = i.getStringExtra("act")
             cancel(ctx, text)
+            if (act != null) {
+                val pr = goAsync()
+                Thread { try { More.runScheduled(ctx, act, id) } finally { pr.finish() } }.start()
+                return
+            }
+            notifyNow(ctx, text, id)
             Speaker.say(ctx, "Yaad dila raha hoon: $text")
         }
     }

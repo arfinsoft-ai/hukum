@@ -74,7 +74,7 @@ object Extra {
         "calendar_add" -> calAdd(h, a)
         "calendar_read" -> calRead(h.ctx, a.optInt("days", 1))
         "dhan_portfolio" -> Dhan.portfolio(a.optString("what", "positions"))
-        "morning_brief" -> brief(h.ctx)
+        "morning_brief" -> More.fullBrief(h.ctx, brief(h.ctx))
         else -> null
     }
 

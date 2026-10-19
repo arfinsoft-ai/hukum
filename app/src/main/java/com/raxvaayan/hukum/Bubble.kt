@@ -77,6 +77,7 @@ class BootReceiver : android.content.BroadcastReceiver() {
     override fun onReceive(ctx: Context, i: Intent) {
         Prefs.init(ctx)
         Sched.reschedulePending(ctx)
+        More.scheduleBrief(ctx)
         if (Prefs.bubble) Bubble.start(ctx)
     }
 }

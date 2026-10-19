@@ -21,6 +21,17 @@ class WaListener : NotificationListenerService() {
         @Volatile var connected = false
         private val items = LinkedHashMap<String, Item>()
 
+        private class Any(val app: String, val title: String, val text: String, val time: Long)
+        private val anyList = ArrayList<Any>()
+
+        fun allSummary(app: String): String = synchronized(anyList) {
+            if (!connected) return "NOT DONE: Notification access OFF hai — Settings → 3 se ON karwao."
+            val l = anyList.filter { app.isBlank() || it.app.contains(app, true) }.takeLast(25).reversed()
+            if (l.isEmpty()) return "Koi naya notification nahi."
+            val f = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.ENGLISH)
+            l.joinToString("\n") { "${f.format(java.util.Date(it.time))} [${it.app}] ${it.title}: ${it.text.take(120)}" }
+        }
+
         fun summary(): String = synchronized(items) {
             if (!connected) return "Notification access OFF hai — Settings se ON karwao."
             val list = items.values.sortedByDescending { it.time }.take(8)
@@ -52,10 +63,27 @@ class WaListener : NotificationListenerService() {
         }
     }
 
+    private fun recordAny(sbn: StatusBarNotification) {
+        if (sbn.packageName == packageName || sbn.isOngoing) return
+        val n = sbn.notification
+        if (n.flags and Notification.FLAG_GROUP_SUMMARY != 0) return
+        val ex = n.extras
+        val title = ex.getCharSequence(Notification.EXTRA_TITLE)?.toString()?.trim().orEmpty()
+        val text = (ex.getCharSequence(Notification.EXTRA_BIG_TEXT) ?: ex.getCharSequence(Notification.EXTRA_TEXT))?.toString()?.trim().orEmpty()
+        if (title.isEmpty() && text.isEmpty()) return
+        val app = try { packageManager.getApplicationLabel(packageManager.getApplicationInfo(sbn.packageName, 0)).toString() } catch (_: Exception) { sbn.packageName }
+        synchronized(anyList) {
+            anyList.removeAll { it.app == app && it.title == title && it.text == text }
+            anyList.add(Any(app, title, text, System.currentTimeMillis()))
+            while (anyList.size > 60) anyList.removeAt(0)
+        }
+    }
+
     override fun onListenerConnected() { connected = true }
     override fun onListenerDisconnected() { connected = false }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
+        try { recordAny(sbn) } catch (_: Exception) {}
         if (!sbn.packageName.startsWith("com.whatsapp")) return
         val n = sbn.notification
         if (n.flags and Notification.FLAG_GROUP_SUMMARY != 0) return

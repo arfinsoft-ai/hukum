@@ -45,6 +45,12 @@ object Prefs {
     var dhanToken: String
         get() = s("dhanToken", "")
         set(v) = sp.edit().putString("dhanToken", v.trim()).apply()
+    var briefOn: Boolean
+        get() = b("briefOn", false)
+        set(v) = sp.edit().putBoolean("briefOn", v).apply()
+    var briefTime: String
+        get() = s("briefTime", "08:00")
+        set(v) = sp.edit().putString("briefTime", v.trim()).apply()
     var bubble: Boolean
         get() = b("bubble", false)
         set(v) = sp.edit().putBoolean("bubble", v).apply()

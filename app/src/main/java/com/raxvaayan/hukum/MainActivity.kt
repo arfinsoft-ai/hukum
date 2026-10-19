@@ -48,6 +48,7 @@ class MainActivity : Activity(), ToolHost {
         super.onCreate(b)
         Prefs.init(this)
         Sched.reschedulePending(this)
+        More.scheduleBrief(this)
         if (Prefs.bubble) Bubble.start(this)
         buildUi()
         tts = TextToSpeech(this) { s ->
@@ -182,7 +183,13 @@ Rules:
 - Blinkit/grocery order: blinkit_add se items cart mein daal (Hindi/Gujarati item naam English mein translate kar, jaise "बफैलो मिल्क" → "buffalo milk", "दूध" → "milk"). Checkout/payment KABHI nahi — user khud karega.
 - Reminder/"yaad dilana" → remind (at = 'yyyy-MM-dd HH:mm', current time se calculate). "note karo"/"yaad rakho" permanent baat → memory_save.
 - Torch/volume/silent/DND/WiFi/Bluetooth → device_control. "kisne call kiya"/missed call → call_log. Rasta/navigation/nearby → navigate. Meeting add/dekho → calendar_add/calendar_read. Trading P&L/positions/holdings → dhan_portfolio. "subah ka brief"/"aaj kya hai" → morning_brief.
-- Uber/Rapido/ride book karna abhi nahi hota: open_app se app khol do, phir screen_tap/screen_type se pickup-drop bhar sakta hai, par book/confirm/pay button user dabayega.
+- "Task/kaam add karo", birthday, anniversary → calendar_event (birthday/anniversary: repeat yearly, all_day true, start = di gayi date, saal purana bhi chalega; title "<naam/kiska> birthday"). Naam na ho to title "Birthday (2 Oct)" rakh, poochh mat.
+- Kisi time par khud kaam karna ("kal 9 baje Amit ko msg kar dena", "5 baje mummy ko call karna") → schedule_action. Sirf yaad dilana ho → remind.
+- SMS/OTP padhna → sms_read; SMS bhejna → sms_send. "kya kya aaya", notifications → notifications_read.
+- Location share → my_location, phir us link ko whatsapp_send se bhej. Mausam → weather. News padhna/batana → news (YouTube pe chalana ho to youtube_play).
+- Ride → ride_book (Uber default), phir screen_read se options bata. Book/confirm user dabayega.
+- Trading app (Angel One, Zerodha, Groww) mein share kharidna/bechna: open_app → search pe screen_tap → screen_type stock naam → result tap → BUY/SELL tap → screen_fill Qty (aur price agar diya) → user ko bolo "order ready, final BUY aap dabaiye". Final order button tool BLOCK karega, ye sahi hai.
+- screen_* tools: har 1-2 step ke baad screen_read. screen_back, screen_scroll, screen_fill (naam wale box mein likhna) bhi hain. 'BLOCKED' aaye to wahi ruk ke user ko bata.
 - Jo bilkul na ho, saaf bata do."""
     }
 
@@ -205,7 +212,7 @@ Rules:
         thread {
             var reply = ""
             try {
-                for (step in 0 until 12) {
+                for (step in 0 until 16) {
                     trimHistory()
                     val msgs = JSONArray().put(JSONObject().put("role", "system").put("content", systemPrompt()))
                     for (i in 0 until history.length()) msgs.put(history.get(i))
