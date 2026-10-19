@@ -129,6 +129,9 @@ class SettingsActivity : Activity() {
             } else Bubble.stop(this)
         }
 
+        box.addView(text("HUKUM v${packageManager.getPackageInfo(packageName, 0).versionName}\nPowered by RAXVAAYAN AI", 12f, C.MUTED).apply {
+            gravity = android.view.Gravity.CENTER }, lp(MATCH, WRAP).apply { topMargin = dp(28) })
+
         box.addView(btn("💾 Save") {
             Prefs.baseUrl = url.text.toString(); Prefs.apiKey = key.text.toString()
             Prefs.model = model.text.toString(); Prefs.userName = name.text.toString().ifBlank { "Ravi" }

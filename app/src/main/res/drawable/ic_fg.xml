@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Crown over an H -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp" android:height="108dp"
-    android:viewportWidth="108" android:viewportHeight="108">
-    <path android:fillColor="#F5B83D"
-        android:pathData="M34,40 L42,30 L48,38 L54,26 L60,38 L66,30 L74,40 L72,44 L36,44 Z" />
-    <path android:fillColor="#F5B83D"
-        android:pathData="M38,50 h8 v10 h16 v-10 h8 v32 h-8 v-14 h-16 v14 h-8 Z" />
+<!-- HUKUM: crown + H monogram in a gold seal with voice waves -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+  <group android:pivotX="54" android:pivotY="54" android:scaleX="0.86" android:scaleY="0.86">
+    <path android:fillType="evenOdd" android:pathData="M54,21 A33,33 0 1,1 53.99,21 Z M54,24.5 A29.5,29.5 0 1,0 54.01,24.5 Z"><aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="30" android:startY="26" android:endX="78" android:endY="84"><item android:offset="0" android:color="#FFFFE29A"/><item android:offset="0.45" android:color="#FFF5B83D"/><item android:offset="1" android:color="#FFB9771A"/></gradient></aapt:attr></path>
+    <path android:pathData="M37,46 L39,33 L46,39.5 L54,29 L62,39.5 L69,33 L71,46 Z"><aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="30" android:startY="26" android:endX="78" android:endY="84"><item android:offset="0" android:color="#FFFFE29A"/><item android:offset="0.45" android:color="#FFF5B83D"/><item android:offset="1" android:color="#FFB9771A"/></gradient></aapt:attr></path>
+    <path android:pathData="M37,47.5 h34 v3.2 h-34 Z"><aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="30" android:startY="26" android:endX="78" android:endY="84"><item android:offset="0" android:color="#FFFFE29A"/><item android:offset="0.45" android:color="#FFF5B83D"/><item android:offset="1" android:color="#FFB9771A"/></gradient></aapt:attr></path>
+    <path android:fillColor="#FFE29A" android:pathData="M37,32 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 Z M51.7,27.6 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z M67,32 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 Z"/>
+    <path android:fillColor="#E5484D" android:pathData="M52.2,42 a1.8,1.8 0 1,0 3.6,0 a1.8,1.8 0 1,0 -3.6,0 Z"/>
+    <path android:pathData="M41,54 h6.5 v9 h13 v-9 h6.5 v24 h-6.5 v-9.5 h-13 v9.5 h-6.5 Z"><aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="30" android:startY="26" android:endX="78" android:endY="84"><item android:offset="0" android:color="#FFFFE29A"/><item android:offset="0.45" android:color="#FFF5B83D"/><item android:offset="1" android:color="#FFB9771A"/></gradient></aapt:attr></path>
+    <path android:strokeColor="#F5B83D" android:strokeWidth="1.8" android:strokeLineCap="round"
+        android:pathData="M72.5,60 q3,6 0,12 M76.5,57 q5,9 0,18 M35.5,60 q-3,6 0,12 M31.5,57 q-5,9 0,18"/>
+  </group>
 </vector>

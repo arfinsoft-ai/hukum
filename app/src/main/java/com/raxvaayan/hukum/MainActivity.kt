@@ -40,6 +40,7 @@ class MainActivity : Activity(), ToolHost {
     private lateinit var input: EditText
     private lateinit var mic: TextView
     private lateinit var status: TextView
+    private lateinit var tasksBtn: TextView
     private val history = JSONArray()
     @Volatile private var busy = false
     private var sr: SpeechRecognizer? = null
@@ -62,7 +63,7 @@ class MainActivity : Activity(), ToolHost {
             override fun onDone(id: String?) { WakeService.resume() }
             @Deprecated("") override fun onError(id: String?) { WakeService.resume() }
         })
-        bubble("Hukum kijiye, ${Prefs.userName} 🙏\nJaise: \"kal subah 6 baje alarm\", \"Amit ko WhatsApp karo ki meeting 4 baje hai\", \"mummy ko call karo\"", false)
+        bubble("Hukum kijiye, ${Prefs.userName} 🙏\nJaise: \"kal subah 6 baje alarm\", \"kal 9 baje Amit ko WhatsApp karna ki payment bhejo\", \"Papa ko meri location bhejo\", \"aaj ka mausam\"\n\n📋 upar — aane wale saare kaam.", false)
         handleWake(intent)
     }
 
@@ -89,11 +90,21 @@ class MainActivity : Activity(), ToolHost {
         val root = vbox().apply { setBackgroundColor(C.BG); fitsSystemWindows = true }
 
         val top = hbox().apply { setPadding(dp(16), dp(12), dp(8), dp(12)) }
+        top.addView(android.widget.ImageView(this).apply {
+            setImageResource(R.mipmap.ic_launcher); setOnClickListener { startActivity(Intent(this@MainActivity, TasksActivity::class.java)) }
+        }, lp(dp(46), dp(46)).apply { rightMargin = dp(10) })
         val titleBox = vbox()
-        titleBox.addView(text("👑 HUKUM", 20f, C.GOLD, true))
-        status = text("", 12f, C.MUTED)
+        titleBox.addView(text("HUKUM", 21f, C.GOLD, true).apply { letterSpacing = 0.08f })
+        titleBox.addView(text("Powered by RAXVAAYAN AI", 10.5f, C.MUTED).apply { letterSpacing = 0.04f })
+        status = text("", 11.5f, C.MUTED)
         titleBox.addView(status)
         top.addView(titleBox, lp(0, WRAP, 1f))
+        tasksBtn = text("📋", 20f, C.TEXT).apply {
+            gravity = Gravity.CENTER; background = round(C.CARD, dp(18).toFloat(), 1, C.LINE)
+            setPadding(dp(12), dp(6), dp(12), dp(6))
+            setOnClickListener { startActivity(Intent(this@MainActivity, TasksActivity::class.java)) }
+        }
+        top.addView(tasksBtn, lp(WRAP, dp(40)).apply { rightMargin = dp(2) })
         top.addView(text("⚙️", 22f).apply {
             setPadding(dp(12), dp(6), dp(12), dp(6))
             setOnClickListener { startActivity(Intent(this@MainActivity, SettingsActivity::class.java)) }
@@ -129,7 +140,14 @@ class MainActivity : Activity(), ToolHost {
         setOnClickListener { onClick() }
     }
 
+    private fun refreshTasks() {
+        val n = TasksActivity.count(this)
+        tasksBtn.text = if (n > 0) "📋 $n" else "📋"
+        tasksBtn.setTextColor(if (n > 0) C.GOLD else C.TEXT)
+    }
+
     private fun refreshStatus() {
+        refreshTasks()
         val bits = ArrayList<String>()
         if (Prefs.apiKey.isBlank()) bits.add("⚠️ API key nahi")
         if (!HukumAccess.isOn()) bits.add("Auto-send OFF")
@@ -264,8 +282,17 @@ Rules:
             }
             val out = reply.ifBlank { if (used.isEmpty()) "Kuch nahi hua." else "Ho gaya ✅" } +
                 (if (used.isNotEmpty()) "\n\n" + used.distinct().joinToString(" · ") else "")
+            val planned = used.any { it.startsWith("✅") && (it.contains("remind") || it.contains("schedule") || it.contains("calendar")) }
             ui.post {
                 thinking.text = out
+                refreshTasks()
+                if (planned) {
+                    val chip = text("📋 Aane wale kaam dekho ›", 13.5f, C.GOLD, true).apply {
+                        background = round(C.CARD, dp(14).toFloat(), 1, C.GOLD); setPadding(dp(14), dp(8), dp(14), dp(8))
+                        setOnClickListener { startActivity(Intent(this@MainActivity, TasksActivity::class.java)) }
+                    }
+                    list.addView(chip, lp(WRAP, WRAP).apply { topMargin = dp(6) })
+                }
                 busy = false
                 scrollDown()
                 if (voice || Prefs.speakReplies) speak(out) else WakeService.resume()

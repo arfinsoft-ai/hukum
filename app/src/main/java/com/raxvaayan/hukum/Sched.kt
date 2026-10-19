@@ -66,6 +66,23 @@ object Sched {
         }
     }
 
+    /** Upcoming items, soonest first. Each: id, at, t, act? */
+    fun items(ctx: Context): List<JSONObject> {
+        prune(ctx)
+        val arr = read(ctx)
+        return (0 until arr.length()).map { arr.getJSONObject(it) }.filter { it.getLong("at") > System.currentTimeMillis() - 60000 }.sortedBy { it.getLong("at") }
+    }
+
+    fun cancelId(ctx: Context, id: Int) {
+        val arr = read(ctx); val keep = JSONArray()
+        val am = ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        for (i in 0 until arr.length()) {
+            val o = arr.getJSONObject(i)
+            if (o.getInt("id") == id) am.cancel(pending(ctx, id, o.getString("t"), o.optString("act").ifEmpty { null })) else keep.put(o)
+        }
+        sp(ctx).edit().putString("items", keep.toString()).apply()
+    }
+
     private fun prune(ctx: Context) {
         val arr = read(ctx); val now = System.currentTimeMillis(); val keep = JSONArray()
         for (i in 0 until arr.length()) { val o = arr.getJSONObject(i); if (o.getLong("at") > now - 3600000) keep.put(o) }
@@ -87,7 +104,7 @@ object Sched {
         val open = PendingIntent.getActivity(ctx, id + 1, Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0))
         val n = (if (Build.VERSION.SDK_INT >= 26) android.app.Notification.Builder(ctx, CH) else @Suppress("DEPRECATION") android.app.Notification.Builder(ctx))
-            .setSmallIcon(R.drawable.ic_fg).setContentTitle("👑 HUKUM yaad dila raha hai").setContentText(text)
+            .setSmallIcon(R.drawable.ic_mono).setContentTitle("👑 HUKUM yaad dila raha hai").setContentText(text)
             .setStyle(android.app.Notification.BigTextStyle().bigText(text))
             .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
             .setAutoCancel(true).setContentIntent(open).build()
