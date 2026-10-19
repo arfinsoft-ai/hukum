@@ -37,7 +37,7 @@ object Tools {
                     .put("days", JSONObject().put("type", "array").put("items", JSONObject().put("type", "string"))
                         .put("description", "repeat days, optional: mon,tue,wed,thu,fri,sat,sun")),
                 listOf("hour", "minute")))
-            .put(fn("cancel_alarm", "Pehle se laga alarm band/cancel karo. hour/minute do; time na pata ho to bina params ke call karo (alarm list khulegi).",
+            .put(fn("cancel_alarm", "Laga hua alarm OFF karo (Clock list mein switch band). hour/minute do. Alarm time change = cancel_alarm(purana) + set_alarm(naya).",
                 JSONObject()
                     .put("hour", p("integer", "0-23, optional"))
                     .put("minute", p("integer", "0-59, optional")),
@@ -117,11 +117,16 @@ object Tools {
     }
 
     private fun cancelAlarm(h: ToolHost, a: JSONObject): String {
-        // OnePlus/Oxygen Clock ignores silent dismiss intents, so open the alarm list directly.
         val i = Intent(AlarmClock.ACTION_SHOW_ALARMS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         h.onUi { h.ctx.startActivity(i); "" }
-        val t = if (a.has("hour")) " (%02d:%02d)".format(a.getInt("hour"), a.optInt("minute", 0)) else ""
-        return "Phone ka Clock app direct cancel allow nahi karta. Alarm list khol di$t — user wahan ek tap se band kare."
+        if (!a.has("hour")) return "Alarm list khol di. Kaunsa band karna hai user se time poochho."
+        val hr = a.getInt("hour"); val mn = a.optInt("minute", 0)
+        val svc = HukumAccess.inst
+            ?: return "NOT DONE: Accessibility OFF hai, alarm band nahi hua. List khuli hai — user khud %02d:%02d OFF kare.".format(hr, mn)
+        val err = Clock.turnOff(svc, hr, mn)
+        svc.backToHukum()
+        return if (err == null) "DONE: %02d:%02d ka alarm OFF kar diya.".format(hr, mn)
+        else "NOT DONE: $err. User ko sach batao ki band nahi hua."
     }
 
     private fun timer(h: ToolHost, a: JSONObject): String {
