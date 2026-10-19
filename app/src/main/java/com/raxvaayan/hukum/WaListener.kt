@@ -33,6 +33,11 @@ class WaListener : NotificationListenerService() {
             v.firstOrNull { it.sender.equals(q, true) }
                 ?: v.firstOrNull { it.sender.contains(q, true) }
                 ?: v.firstOrNull { q.contains(it.sender, true) }
+                ?: run {
+                    val qt = Contacts.translit(q).lowercase()
+                    val qw = qt.split(Regex("\\s+")).filter { it.length >= 3 }
+                    v.firstOrNull { item -> val s = Contacts.translit(item.sender).lowercase(); qw.isNotEmpty() && qw.any { s.contains(it) } }
+                }
         }
 
         fun reply(ctx: Context, item: Item, msg: String): String {

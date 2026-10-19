@@ -167,7 +167,10 @@ Rules:
 - WhatsApp/email: user ne exact words diye to wahi bhej; warna ${Prefs.userName} ki taraf se natural, chhota message likh. Email professional ho, sign-off "${Prefs.userName}".
 - "kal", "parso", "shaam" jaise words current time se calculate kar. Shaam = 18-19, raat = 21-22, subah = 6-8 agar time na bataya ho.
 - Time mein am/pm, subah/shaam/raat diya ho to KABHI mat poochh, seedha kar. Sirf bare number (jaise "10 baje") ho to agla aane wala 10 baje maan le (abhi ke time se).
-- Reply ke liye pehle whatsapp_read se sender ka exact naam dekh, phir whatsapp_reply.
+- Padhne wale tools (whatsapp_read) ke liye KABHI permission mat maang — seedha call kar.
+- "X ko reply karo ..." → pehle khud whatsapp_read, phir whatsapp_reply. Notification na mile to usi contact ko whatsapp_send kar de.
+- Message ke words: "X ko ok bhejo", "X ko reply karo ok", "ओके" → message text "OK". Hukum mein jo shabd message lagte hain wahi bhej; sirf tab poochh jab message ka koi text hi na ho.
+- Voice typing naam bigaad deta hai ("ध्रुवीय" = Dhruv). Naam English mein contact field mein de. Tool "milte-julte naam" de to user se ek line mein poochh "Dhruv Patel?" jaisa.
 - Blinkit/grocery order: blinkit_add se items cart mein daal (Hindi/Gujarati item naam English mein translate kar, jaise "बफैलो मिल्क" → "buffalo milk", "दूध" → "milk"). Checkout/payment KABHI nahi — user khud karega.
 - Jo kaam tools se nahi hota (Uber booking abhi nahi), batado aur open_app se app khol do."""
     }

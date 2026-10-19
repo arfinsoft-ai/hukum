@@ -55,18 +55,24 @@ object Contacts {
 
     fun phone(ctx: Context, q: String): Resolved {
         if (looksLikeNumber(q)) return Resolved.One(Ct(q, q))
+        lastNear = emptyList()
         val list = query(ctx, q, isEmail = false) ?: return Resolved.Err(NO_PERM)
         return pick(q, list, "phone number")
     }
 
     fun email(ctx: Context, q: String): Resolved {
         if (q.contains("@")) return Resolved.One(Ct(q, q.trim()))
+        lastNear = emptyList()
         val list = query(ctx, q, isEmail = true) ?: return Resolved.Err(NO_PERM)
         return pick(q, list, "email")
     }
 
     private fun pick(q: String, list: List<Ct>, what: String): Resolved {
-        if (list.isEmpty()) return Resolved.Err("Contacts mein '$q' ka $what nahi mila. User se saved naam ya number poochho.")
+        if (list.isEmpty()) {
+            val near = lastNear; lastNear = emptyList()
+            return Resolved.Err("Contacts mein '$q' ka $what nahi mila." +
+                (if (near.isNotEmpty()) " Milte-julte naam: ${near.joinToString(", ")} — user se poochho inme se koi hai kya." else " User se saved naam ya number poochho."))
+        }
         val names = list.map { it.name }.distinct()
         if (names.size == 1) return Resolved.One(list[0])
         val exact = list.filter { norm(it.name) == norm(q) }
@@ -96,8 +102,10 @@ object Contacts {
         }
         val nq = norm(q)
         if (nq.isEmpty()) return emptyList()
-        // 1. substring
-        all.filter { norm(it.name).contains(nq) }.let { if (it.isNotEmpty()) return it }
+        // 1. substring (raw or transliterated)
+        val nqT = norm(translit(q))
+        all.filter { val nn = norm(it.name); nn.contains(nq) || (nqT.length >= 3 && norm(translit(it.name)).contains(nqT)) }
+            .let { if (it.isNotEmpty()) return it }
         // 2. relation aliases
         val group = ALIASES.firstOrNull { g -> g.any { norm(it) == nq } }
         if (group != null) {
@@ -106,9 +114,59 @@ object Contacts {
                 terms.any { t -> if (t.length <= 3) words.contains(t) else nn.contains(t) } }
                 .let { if (it.isNotEmpty()) return it }
         }
-        // 3. typo tolerant per word
-        val maxD = if (nq.length >= 7) 2 else if (nq.length >= 4) 1 else 0
-        if (maxD == 0) return emptyList()
-        return all.filter { ct -> ct.name.split(Regex("\\s+")).any { w -> val nw = norm(w); nw.isNotEmpty() && dist(nw, nq) <= maxD } }
+        // 3. word-by-word fuzzy score (handles "Dhruv Sabarmati" vs "Dhruv Patel Sabarmati", voice typos, Hindi script)
+        val qw = words(q)
+        if (qw.isEmpty()) return emptyList()
+        val scored = all.map { it to score(qw, words(it.name)) }.filter { it.second > 0.0 }
+        val best = scored.maxOfOrNull { it.second } ?: return emptyList()
+        // need at least half the query words to match
+        if (best < qw.size / 2.0 || best < 0.75) { lastNear = scored.sortedByDescending { it.second }.map { it.first.name }.distinct().take(4); return emptyList() }
+        return scored.filter { it.second >= best - 0.01 }.map { it.first }
+    }
+
+    /** Close-but-not-enough names from the last failed search, to suggest to the user. */
+    @Volatile var lastNear: List<String> = emptyList()
+
+    private fun words(s: String) = translit(s).lowercase().split(Regex("[^\\p{L}\\p{N}]+")).map { norm(it) }.filter { it.length >= 2 }
+
+    private fun wordMatch(a: String, b: String): Double {
+        if (a == b) return 1.0
+        if (a.length >= 3 && (b.startsWith(a) || a.startsWith(b) && b.length >= 3)) return 0.9
+        val m = maxOf(a.length, b.length)
+        val d = dist(a, b)
+        val tol = if (m >= 7) 2 else if (m >= 4) 1 else 0
+        return if (d <= tol) 0.75 else 0.0
+    }
+
+    private fun score(qw: List<String>, cw: List<String>) = qw.sumOf { q -> cw.maxOfOrNull { wordMatch(q, it) } ?: 0.0 }
+
+    private val DEVA = mapOf(
+        'अ' to "a", 'आ' to "a", 'इ' to "i", 'ई' to "i", 'उ' to "u", 'ऊ' to "u", 'ए' to "e", 'ऐ' to "ai", 'ओ' to "o", 'औ' to "au", 'ऋ' to "ri",
+        'क' to "k", 'ख' to "kh", 'ग' to "g", 'घ' to "gh", 'च' to "ch", 'छ' to "chh", 'ज' to "j", 'झ' to "jh",
+        'ट' to "t", 'ठ' to "th", 'ड' to "d", 'ढ' to "dh", 'ण' to "n", 'त' to "t", 'थ' to "th", 'द' to "d", 'ध' to "dh", 'न' to "n",
+        'प' to "p", 'फ' to "f", 'ब' to "b", 'भ' to "bh", 'म' to "m", 'य' to "y", 'र' to "r", 'ल' to "l", 'व' to "v", 'श' to "sh", 'ष' to "sh", 'स' to "s", 'ह' to "h",
+        'ा' to "a", 'ि' to "i", 'ी' to "i", 'ु' to "u", 'ू' to "u", 'े' to "e", 'ै' to "ai", 'ो' to "o", 'ौ' to "au", 'ृ' to "ri", 'ं' to "n", 'ँ' to "n",
+        // Gujarati
+        'અ' to "a", 'આ' to "a", 'ઇ' to "i", 'ઈ' to "i", 'ઉ' to "u", 'એ' to "e", 'ઓ' to "o",
+        'ક' to "k", 'ખ' to "kh", 'ગ' to "g", 'ઘ' to "gh", 'ચ' to "ch", 'છ' to "chh", 'જ' to "j", 'ઝ' to "jh",
+        'ટ' to "t", 'ઠ' to "th", 'ડ' to "d", 'ઢ' to "dh", 'ણ' to "n", 'ત' to "t", 'થ' to "th", 'દ' to "d", 'ધ' to "dh", 'ન' to "n",
+        'પ' to "p", 'ફ' to "f", 'બ' to "b", 'ભ' to "bh", 'મ' to "m", 'ય' to "y", 'ર' to "r", 'લ' to "l", 'વ' to "v", 'શ' to "sh", 'ષ' to "sh", 'સ' to "s", 'હ' to "h", 'ળ' to "l",
+        'ા' to "a", 'િ' to "i", 'ી' to "i", 'ુ' to "u", 'ૂ' to "u", 'ે' to "e", 'ૈ' to "ai", 'ો' to "o", 'ૌ' to "au", 'ં' to "n",
+    )
+
+    /** Rough Devanagari/Gujarati → Latin so "ध्रुव" matches "Dhruv". Inherent 'a' dropped (Dhruv, not Dhruva). */
+    fun translit(s: String): String {
+        if (s.none { it.code in 0x0900..0x0AFF }) return s
+        val sb = StringBuilder()
+        for (ch in s) {
+            when {
+                ch == '्' || ch == '્' || ch == '़' || ch == '઼' -> {}
+                DEVA.containsKey(ch) -> sb.append(DEVA[ch])
+                ch.code in 0x0900..0x0AFF -> {}
+                else -> sb.append(ch)
+            }
+        }
+        return sb.toString()
+    }
     }
 }
