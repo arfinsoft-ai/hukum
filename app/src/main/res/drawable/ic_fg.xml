@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Crown over an H -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#F5B83D"
+        android:pathData="M34,40 L42,30 L48,38 L54,26 L60,38 L66,30 L74,40 L72,44 L36,44 Z" />
+    <path android:fillColor="#F5B83D"
+        android:pathData="M38,50 h8 v10 h16 v-10 h8 v32 h-8 v-14 h-16 v14 h-8 Z" />
+</vector>
