@@ -184,6 +184,7 @@ Rules:
         bubble(text, true)
         busy = true
         val thinking = bubble("…", false)
+        val mark = history.length()
         history.put(JSONObject().put("role", "user").put("content", text))
         thread {
             var reply = ""
@@ -214,6 +215,8 @@ Rules:
                     }
                 }
             } catch (e: Exception) {
+                // Roll back this turn so a half-finished tool exchange can't break the next request.
+                while (history.length() > mark) history.remove(history.length() - 1)
                 reply = "⚠️ ${e.message}"
             }
             val out = reply.ifBlank { "Ho gaya ✅" }

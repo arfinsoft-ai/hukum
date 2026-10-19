@@ -22,6 +22,7 @@ object Llm {
             .put("tools", tools)
             .put("tool_choice", "auto")
             .put("temperature", 0.2)
+            .put("max_tokens", 1024)
         conn.outputStream.use { it.write(body.toString().toByteArray()) }
         val code = conn.responseCode
         val txt = (if (code in 200..299) conn.inputStream else conn.errorStream)
