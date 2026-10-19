@@ -76,7 +76,8 @@ object Cam {
             val nodes = all(root).filter { it.isVisibleToUser }
             if (!switched) {
                 val wrong = if (front) listOf("switch to front", "front camera", "selfie") else listOf("switch to rear", "switch to back", "rear camera", "back camera")
-                nodes.firstOrNull { n -> val d = desc(n); wrong.any { d.contains(it) } }?.let { click(it); switched = true; Thread.sleep(1500); continue }
+                val sw = nodes.firstOrNull { n -> val d = desc(n); wrong.any { d.contains(it) } }
+                if (sw != null) { click(sw); switched = true; Thread.sleep(1500); continue }
                 switched = true
             }
             val shutter = nodes.firstOrNull { n -> val d = desc(n); listOf("shutter", "take photo", "take picture", "capture", "photo button", "click photo").any { d.contains(it) } }
