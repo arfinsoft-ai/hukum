@@ -212,7 +212,7 @@ object Market {
         a.put(fn("stock_price", "Share/index/commodity ka abhi ka price (NSE symbol jaise IDEA, TATAMOTORS; ya nifty, bank nifty, sensex, gold, crude).",
             JSONObject().put("names", JSONObject().put("type", "array").put("items", JSONObject().put("type", "string"))), listOf("names")))
         a.put(fn("watchlist", "Watchlist: action add | remove | show.",
-            JSONObject().put("action", p("string", "add | remove | show")).put("names", JSONObject().put("type", "array").put("items", JSONObject().put("type", "string")))), listOf("action")))
+            JSONObject().put("action", p("string", "add | remove | show")).put("names", JSONObject().put("type", "array").put("items", JSONObject().put("type", "string"))), listOf("action")))
         a.put(fn("price_alert", "Price alert: action add (name, op above/below, price) | remove (name) | list.",
             JSONObject().put("action", p("string", "add | remove | list")).put("name", p("string", "symbol")).put("op", p("string", "above | below")).put("price", p("number", "level")), listOf("action")))
         a.put(fn("market_brief", "Market brief abhi: which = open (global cues + watchlist) | close (aaj ka hisaab). on=true/false se roz 9:10 & 3:35 auto brief ON/OFF.",
