@@ -180,8 +180,19 @@ object Biz {
     // ======================= BIRTHDAYS =======================
     class Bday(val name: String, val phone: String?, val date: Long)
 
+    /** One query: contact_id → number and lowercase name → number. */
+    private fun phoneMaps(c: Context): Pair<Map<Long, String>, Map<String, String>> {
+        val byId = HashMap<Long, String>(); val byName = HashMap<String, String>()
+        try { c.contentResolver.query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+            arrayOf(ContactsContract.CommonDataKinds.Phone.CONTACT_ID, ContactsContract.CommonDataKinds.Phone.NUMBER, ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME), null, null, null)?.use { cur ->
+            while (cur.moveToNext()) { val n = cur.getString(1) ?: continue
+                byId.putIfAbsent(cur.getLong(0), n); cur.getString(2)?.lowercase()?.trim()?.let { byName.putIfAbsent(it, n) } } } } catch (_: Exception) {}
+        return byId to byName
+    }
+
     fun birthdays(c: Context, days: Int): List<Bday> {
         val out = ArrayList<Bday>(); val today = startOfDay()
+        val (byId, byName) = if (has(c, Manifest.permission.READ_CONTACTS)) phoneMaps(c) else (emptyMap<Long, String>() to emptyMap<String, String>())
         if (has(c, Manifest.permission.READ_CONTACTS)) try {
             c.contentResolver.query(ContactsContract.Data.CONTENT_URI,
                 arrayOf(ContactsContract.Data.DISPLAY_NAME, ContactsContract.CommonDataKinds.Event.START_DATE, ContactsContract.Data.CONTACT_ID),
@@ -192,7 +203,7 @@ object Biz {
                     val md = Regex("(\\d{1,2})-(\\d{1,2})$").find(s.trim())?.groupValues ?: continue
                     val cal = Calendar.getInstance().apply { timeInMillis = today; set(Calendar.MONTH, md[1].toInt() - 1); set(Calendar.DAY_OF_MONTH, md[2].toInt()) }
                     if (cal.timeInMillis < today) cal.add(Calendar.YEAR, 1)
-                    if (cal.timeInMillis <= today + days * 86400000L) out.add(Bday(name, (Contacts.phone(c, name) as? Resolved.One)?.ct?.value, cal.timeInMillis))
+                    if (cal.timeInMillis <= today + days * 86400000L) out.add(Bday(name, byId[cur.getLong(2)] ?: byName[name.lowercase().trim()], cal.timeInMillis))
                 }
             }
         } catch (_: Exception) {}
@@ -208,7 +219,10 @@ object Biz {
                     if (t < today) continue
                     val who = title.replace(Regex("(?i)'?s?\\s*(birthday|bday|janmdin|ka|ki|nu|no)"), " ").replace(Regex("\\s+"), " ").trim()
                     if (out.any { it.name.contains(who, true) || who.contains(it.name.split(" ").first(), true) }) continue
-                    out.add(Bday(who.ifBlank { title }, if (who.length >= 3) (Contacts.phone(c, who) as? Resolved.One)?.ct?.value else null, startOfDay(t)))
+                    val digits = who.filter { it.isDigit() }
+                    val ph = if (digits.length >= 10 && who.count { it.isLetter() } == 0) who
+                        else byName[who.lowercase()] ?: byName.entries.firstOrNull { e -> who.length >= 4 && e.key.startsWith(who.lowercase()) }?.value
+                    out.add(Bday(who.ifBlank { title }, ph, startOfDay(t)))
                 }
             }
         } catch (_: Exception) {}

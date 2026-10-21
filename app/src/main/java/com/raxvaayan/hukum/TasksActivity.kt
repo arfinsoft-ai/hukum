@@ -28,7 +28,22 @@ class TasksActivity : Activity() {
     }
 
     private var shown = false
-    override fun onResume() { super.onResume(); if (!shown) render() }
+    @Volatile private var bdCache: List<Biz.Bday>? = null
+    @Volatile private var evCache: List<Triple<Long, String, Boolean>>? = null
+    @Volatile private var loading = false
+
+    override fun onResume() {
+        super.onResume(); if (shown) return
+        render()
+        if (loading) return
+        loading = true
+        Thread {
+            val bd = try { Biz.birthdays(this, 7) } catch (e: Throwable) { emptyList() }
+            val ev = try { calendar() } catch (e: Throwable) { emptyList() }
+            bdCache = bd; evCache = ev; loading = false
+            if (!isFinishing && !isDestroyed) runOnUiThread { render() }
+        }.start()
+    }
 
     private fun render() {
         box.removeAllViews()
@@ -63,7 +78,7 @@ class TasksActivity : Activity() {
         }
 
         section("📅 Calendar — agle 7 din", -1)
-        val ev = calendar()
+        val ev = evCache ?: run { empty("⏳ load ho raha hai…"); return@safe }
         if (ev.isEmpty()) empty(if (has(Manifest.permission.READ_CALENDAR)) "Agle 7 din koi event nahi." else "Calendar permission do (⚙️ → 1).")
         ev.forEach { (t, title, allDay) -> row(if (title.contains("birthday", true)) "🎂" else "📅", title,
             "${dayLabel(t)}${if (allDay) " · pura din" else " " + TIME.format(Date(t))}", null) }
@@ -108,7 +123,7 @@ class TasksActivity : Activity() {
             alerts.forEach { o -> row("🔔", "${o.getString("name")} ${if (o.getBoolean("above")) "▲ upar" else "▼ neeche"} ₹${o.getDouble("price")}", "Market time mein har 5 min check",
                 { Market.alertRemove(this, o.getString("id")); render() }) }
         }
-        val bd = Biz.birthdays(this, 7)
+        val bd = bdCache ?: run { section("🎂 Birthdays", -1); empty("⏳ load ho raha hai…"); emptyList() }
         if (bd.isNotEmpty()) { section("🎂 Birthdays — 7 din", bd.size); bd.forEach { row("🎂", it.name, dayLabel(it.date) + if (it.phone == null) " · number nahi" else " · 8:30 baje wish button aayega", null) } }
         section("💸 Is mahine kharcha", -1)
         empty("${inr(Biz.monthTotal(this))}  ·  bolo \"is mahine ka hisaab\" ya \"SMS se kharcha jodo\"")
