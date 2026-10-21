@@ -20,6 +20,7 @@ class TasksActivity : Activity() {
 
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
+        Crash.install(this)
         Prefs.init(this)
         box = vbox().apply { setPadding(dp(16), dp(16), dp(16), dp(32)) }
         setContentView(ScrollView(this).apply { setBackgroundColor(C.BG); fitsSystemWindows = true; addView(box) })
@@ -35,6 +36,7 @@ class TasksActivity : Activity() {
         box.addView(head)
         box.addView(text("Reminders aur khud hone wale kaam. ✕ se cancel.", 12.5f, C.MUTED), lp(MATCH, WRAP).apply { topMargin = dp(4) })
 
+        safe("Tasks") {
         val items = Sched.items(this)
         val acts = items.filter { it.optString("act").isNotEmpty() }
         val rems = items.filter { it.optString("act").isEmpty() }
@@ -47,8 +49,10 @@ class TasksActivity : Activity() {
         if (rems.isEmpty()) empty("Koi reminder nahi. Bolo: \"5 baje yaad dilana GST file karna\"")
         rems.forEach { card(it, false) }
 
-        bizSection()
-        healthSection()
+        }
+        safe("Business") { bizSection() }
+        safe("Sehat") { healthSection() }
+        safe("Calendar") {
 
         if (Prefs.briefOn) {
             section("🌅 Morning brief", -1)
@@ -62,8 +66,17 @@ class TasksActivity : Activity() {
         ev.forEach { (t, title, allDay) -> row(if (title.contains("birthday", true)) "🎂" else "📅", title,
             "${dayLabel(t)}${if (allDay) " · pura din" else " " + TIME.format(Date(t))}", null) }
 
+        }
         box.addView(text("Powered by RAXVAAYAN AI", 11.5f, C.MUTED).apply { gravity = Gravity.CENTER },
             lp(MATCH, WRAP).apply { topMargin = dp(28) })
+    }
+
+    private fun safe(name: String, f: () -> Unit) {
+        try { f() } catch (e: Throwable) {
+            box.addView(text("⚠️ $name section error: ${e.javaClass.simpleName}: ${e.message}\n${e.stackTrace.take(3).joinToString("\n") { "  at ${it.fileName}:${it.lineNumber}" }}", 12f, C.RED).apply {
+                setTextIsSelectable(true); background = round(C.CARD, dp(12).toFloat()); setPadding(dp(12), dp(10), dp(12), dp(10)) },
+                lp(MATCH, WRAP).apply { topMargin = dp(8) })
+        }
     }
 
     private fun inr(v: Double) = "₹" + "%,.0f".format(v)
@@ -122,13 +135,13 @@ class TasksActivity : Activity() {
         sr.addView(scol, lp(0, WRAP, 1f))
         box.addView(sr, lp(MATCH, WRAP).apply { topMargin = dp(8) })
         Thread {
-            val n = Health.steps(this)
-            runOnUiThread {
+            val n = try { Health.steps(this) } catch (e: Throwable) { null }
+            if (!isFinishing) runOnUiThread { try {
                 st.text = if (n != null) "Steps: $n / ${g.stepGoal}" else "Steps: ⚙️ → 1. Permissions (Physical activity) do"
                 (sbar.getChildAt(0).layoutParams as LinearLayout.LayoutParams).weight = ((n ?: 0).toFloat() / g.stepGoal).coerceIn(0f, 1f)
                 (sbar.getChildAt(1).layoutParams as LinearLayout.LayoutParams).weight = 1f - ((n ?: 0).toFloat() / g.stepGoal).coerceIn(0f, 1f)
                 sbar.requestLayout()
-            }
+            } catch (_: Throwable) {} }
         }.start()
 
         for (i in 0 until g.meds.length()) {

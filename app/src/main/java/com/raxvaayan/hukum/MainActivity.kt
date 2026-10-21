@@ -49,6 +49,7 @@ class MainActivity : Activity(), ToolHost {
 
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
+        Crash.install(this)
         Prefs.init(this)
         Sched.reschedulePending(this)
         More.scheduleBrief(this)
@@ -67,6 +68,10 @@ class MainActivity : Activity(), ToolHost {
             @Deprecated("") override fun onError(id: String?) { WakeService.resume() }
         })
         bubble("Hukum kijiye, ${Prefs.userName} 🙏\nJaise: \"kal subah 6 baje alarm\", \"kal 9 baje Amit ko WhatsApp karna ki payment bhejo\", \"Papa ko meri location bhejo\", \"aaj ka mausam\"\n\n📋 upar — aane wale saare kaam.", false)
+        Crash.take(this)?.let { err ->
+            try { (getSystemService(android.content.ClipboardManager::class.java)).setPrimaryClip(android.content.ClipData.newPlainText("hukum crash", err)) } catch (_: Exception) {}
+            bubble("⚠️ Pichhli baar app crash hua tha (error clipboard mein copy hai — Claude ko paste karo):\n\n" + err.lines().take(8).joinToString("\n"), false)
+        }
         handleWake(intent)
     }
 
