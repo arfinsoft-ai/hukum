@@ -21,12 +21,14 @@ class TasksActivity : Activity() {
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
         Crash.install(this)
+        if (Crash.showIfAny(this)) { shown = true; return }
         Prefs.init(this)
         box = vbox().apply { setPadding(dp(16), dp(16), dp(16), dp(32)) }
         setContentView(ScrollView(this).apply { setBackgroundColor(C.BG); fitsSystemWindows = true; addView(box) })
     }
 
-    override fun onResume() { super.onResume(); render() }
+    private var shown = false
+    override fun onResume() { super.onResume(); if (!shown) render() }
 
     private fun render() {
         box.removeAllViews()

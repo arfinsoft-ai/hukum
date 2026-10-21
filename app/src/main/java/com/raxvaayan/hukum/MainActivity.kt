@@ -50,6 +50,7 @@ class MainActivity : Activity(), ToolHost {
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
         Crash.install(this)
+        if (Crash.showIfAny(this)) return
         Prefs.init(this)
         Sched.reschedulePending(this)
         More.scheduleBrief(this)
@@ -77,12 +78,13 @@ class MainActivity : Activity(), ToolHost {
 
     override fun onResume() {
         super.onResume()
+        if (!::status.isInitialized) return
         tts?.language = Locale.forLanguageTag(Prefs.lang)
         refreshStatus()
         if (Prefs.wakeWord && WakeService.inst == null && hasPerm(Manifest.permission.RECORD_AUDIO)) WakeService.start(this)
     }
 
-    override fun onNewIntent(i: Intent) { super.onNewIntent(i); setIntent(i); handleWake(i) }
+    override fun onNewIntent(i: Intent) { super.onNewIntent(i); setIntent(i); if (::status.isInitialized) handleWake(i) }
 
     override fun onDestroy() { sr?.destroy(); tts?.shutdown(); super.onDestroy() }
 
