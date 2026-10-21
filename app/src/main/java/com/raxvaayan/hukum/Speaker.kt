@@ -12,7 +12,8 @@ object Speaker {
             tts?.shutdown()
             tts = TextToSpeech(ctx.applicationContext) { s ->
                 if (s == TextToSpeech.SUCCESS) {
-                    tts?.language = Locale.forLanguageTag(Prefs.lang)
+                    val lang = when { text.any { it.code in 0x0A80..0x0AFF } -> "gu-IN"; text.any { it.code in 0x0900..0x097F } -> "hi-IN"; else -> Prefs.lang }
+                    if ((tts?.setLanguage(Locale.forLanguageTag(lang)) ?: -1) < 0) tts?.language = Locale.forLanguageTag("hi-IN")
                     tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "rem")
                 }
             }

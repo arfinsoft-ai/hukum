@@ -54,6 +54,10 @@ class SettingsActivity : Activity() {
             }
         }
 
+        setupRow("5. Usage access — screen time / app limits", { Biz.usageAllowed(this) }) {
+            startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+        }
+
         // ---- AI ----
         section("🧠 AI (OpenAI-compatible)")
         val url = field("Base URL", Prefs.baseUrl)
@@ -134,6 +138,13 @@ class SettingsActivity : Activity() {
         val bTime = field("Sone ka time (HH:mm)", hc.bedTime)
         note("Dawai reminder bolke add karo: \"roz 9 baje BP ki goli yaad dilana\". Sab data sirf phone mein rehta hai.")
 
+        section("📈 Market")
+        toggle("Roz 9:10 open + 3:35 close brief (Mon–Fri)", Market.briefOn(this)) { Market.setBrief(this, it) }
+        note("Price alert, watchlist bolke: \"IDEA 15 ke upar jaye to batana\", \"TATAMOTORS watchlist mein daalo\".")
+
+        section("📱 Screen time")
+        toggle("Raat 9:30 aaj ka screen-time report", Biz.usageReportOn(this)) { Biz.setUsageReport(this, it) }
+
         section("🫧 Extras")
         toggle("Floating 👑 bubble (har app ke upar)", Prefs.bubble) {
             Prefs.bubble = it
@@ -168,7 +179,7 @@ class SettingsActivity : Activity() {
     private fun perms(): Array<String> {
         val p = arrayListOf(Manifest.permission.READ_CONTACTS, Manifest.permission.CALL_PHONE, Manifest.permission.RECORD_AUDIO,
             Manifest.permission.READ_CALL_LOG, Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR,
-            Manifest.permission.READ_SMS, Manifest.permission.SEND_SMS, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+            Manifest.permission.READ_SMS, Manifest.permission.SEND_SMS, Manifest.permission.WRITE_CONTACTS, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
         if (android.os.Build.VERSION.SDK_INT >= 33) p.add(Manifest.permission.POST_NOTIFICATIONS)
         if (android.os.Build.VERSION.SDK_INT >= 29) p.add(Manifest.permission.ACTIVITY_RECOGNITION)
         return p.toTypedArray()

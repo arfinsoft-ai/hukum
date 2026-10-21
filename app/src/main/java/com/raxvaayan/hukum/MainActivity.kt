@@ -53,6 +53,8 @@ class MainActivity : Activity(), ToolHost {
         Sched.reschedulePending(this)
         More.scheduleBrief(this)
         Health.schedule(this)
+        Market.schedule(this)
+        Biz.schedule(this)
         if (Prefs.bubble) Bubble.start(this)
         buildUi()
         tts = TextToSpeech(this) { s ->
@@ -128,6 +130,7 @@ class MainActivity : Activity(), ToolHost {
                 if (a == EditorInfo.IME_ACTION_SEND || e?.keyCode == KeyEvent.KEYCODE_ENTER) { send(); true } else false
             }
         }
+        bar.addView(circle("📎") { pickImage() }, lp(dp(44), dp(44)).apply { rightMargin = dp(6) })
         bar.addView(input, lp(0, WRAP, 1f))
         mic = circle("🎤") { if (sr != null) stopListen() else listen() }
         bar.addView(mic, lp(dp(48), dp(48)).apply { leftMargin = dp(8) })
@@ -215,6 +218,15 @@ Rules:
 - "kya hua", "kya bheja", "what happened" → pichhle tool results se sach bata. Tool nahi chala tha to "kuch nahi hua" bol.
 - Jawab user ki bhasha mein: Gujarati likhe to Gujarati, Hindi to Hindi/Hinglish.
 - Sehat: "paani yaad dilana", "walk", "uth ke chalne ka reminder", "BP ki goli 9 baje", "11 baje sona hai" → health_setup. "paani piya", "goli le li" → health_log. "aaj kitna paani/steps" → health_status. Medical salah mat do; dawai/dose user jo bole wahi save kar.
+- 📷 Photo aaye: visiting card → details bata ke contact_save (naam, number, company, title, email, note mein address/GSTIN). Bill/invoice → vendor, date, amount, GSTIN 2-3 line mein bata aur expense_add (category guess kar). Aadhaar/PAN/GST certificate/RC jaisa document → vault_save sahi label se. User ne text mein kuch aur bola ho to wahi kar.
+- Lena baaki / udhaar / payment follow-up → due_add ("har Monday" = every_days 7, first_date agla Monday). "X ne paise de diye" → due_paid. "kisse kitna lena hai" → due_list.
+- Share price → stock_price. "X ka alert lagao 15 ke upar" → price_alert add. Watchlist → watchlist. "market kaisa hai"/global cues → market_brief open; "aaj market ka hisaab" → market_brief close; roz brief → market_brief on.
+- Kharcha ("500 petrol") → expense_add; hisaab → expense_report; "SMS se kharcha jodo" → expense_from_sms.
+- Bijli/mobile/EMI/rent har mahine → bill_add; "bill bhar diya" → bill_paid.
+- Document bhejna ("PAN card Amit ko bhejo") → vault_send.
+- Birthday list → birthdays; wish bhejna → birthday_wish.
+- Screen time → screen_time; "Instagram 30 min se zyada nahi" → app_limit.
+- Shortcut/mode ("office mode", "sone ka mode" ya user ka banaya naam) → shortcut_run, phir jo steps aaye wo tools se kar. Naya mode banana → shortcut_save. Saved shortcuts: ${Biz.shortcuts(this).keys.joinToString()}.
 - Jo bilkul na ho, saaf bata do."""
     }
 
@@ -228,12 +240,63 @@ Rules:
         for (i in 0 until keep.length()) history.put(keep.get(i))
     }
 
-    private fun run(text: String, voice: Boolean) {
+    // ---------- Photo attach (bill / visiting card / document) ----------
+    private var camFile: java.io.File? = null
+
+    private fun pickImage() {
+        if (busy) return
+        android.app.AlertDialog.Builder(this).setTitle("📎 Photo bhejo")
+            .setItems(arrayOf("📷 Camera se kheencho", "🖼️ Gallery se chuno")) { _, w ->
+                if (w == 0) {
+                    val f = java.io.File(cacheDir, "cam.jpg"); f.delete(); camFile = f
+                    val i = Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE).putExtra(android.provider.MediaStore.EXTRA_OUTPUT, Files.uri(this, f))
+                        .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    try { startActivityForResult(i, 41) } catch (e: Exception) { bubble("⚠️ Camera app nahi khula.", false) }
+                } else startActivityForResult(Intent(Intent.ACTION_GET_CONTENT).setType("image/*"), 42)
+            }.show()
+    }
+
+    @Deprecated("") override fun onActivityResult(req: Int, res: Int, data: Intent?) {
+        super.onActivityResult(req, res, data)
+        if (res != RESULT_OK || (req != 41 && req != 42)) return
+        thread {
+            try {
+                val src: java.io.InputStream? = if (req == 41) camFile?.takeIf { it.exists() && it.length() > 0 }?.inputStream() else data?.data?.let { contentResolver.openInputStream(it) }
+                val bytes = src?.use { it.readBytes() } ?: throw Exception("photo nahi mili")
+                val o = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, o)
+                var sample = 1; while (maxOf(o.outWidth, o.outHeight) / sample > 2000) sample *= 2
+                var bmp = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, android.graphics.BitmapFactory.Options().apply { inSampleSize = sample })
+                val rot = try { when (android.media.ExifInterface(java.io.ByteArrayInputStream(bytes)).getAttributeInt(android.media.ExifInterface.TAG_ORIENTATION, 1)) {
+                    6 -> 90f; 3 -> 180f; 8 -> 270f; else -> 0f } } catch (e: Exception) { 0f }
+                val scale = minOf(1f, 1400f / maxOf(bmp.width, bmp.height))
+                val mtx = android.graphics.Matrix().apply { postRotate(rot); postScale(scale, scale) }
+                bmp = android.graphics.Bitmap.createBitmap(bmp, 0, 0, bmp.width, bmp.height, mtx, true)
+                val out = java.io.File(cacheDir, "last_${System.currentTimeMillis()}.jpg")
+                out.outputStream().use { bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 82, it) }
+                cacheDir.listFiles { f -> f.name.startsWith("last_") && f != out }?.forEach { it.delete() }
+                Biz.lastImage = out
+                val b64 = android.util.Base64.encodeToString(out.readBytes(), android.util.Base64.NO_WRAP)
+                ui.post {
+                    val iv = android.widget.ImageView(this).apply { setImageBitmap(bmp); adjustViewBounds = true; background = round(C.USER, dp(14).toFloat()); setPadding(dp(4), dp(4), dp(4), dp(4)) }
+                    list.addView(iv, lp(dp(180), WRAP).apply { gravity = Gravity.END; topMargin = dp(6) })
+                    val typed = input.text.toString().trim(); input.setText("")
+                    run(typed.ifBlank { "Ye photo dekho." }, voice = false, image = b64)
+                }
+            } catch (e: Exception) { ui.post { bubble("⚠️ Photo: ${e.message}", false) } }
+        }
+    }
+
+    private fun run(text: String, voice: Boolean, image: String? = null) {
         bubble(text, true)
         busy = true
         val thinking = bubble("…", false)
         val mark = history.length()
-        history.put(JSONObject().put("role", "user").put("content", text))
+        val userIdx = history.length()
+        if (image == null) history.put(JSONObject().put("role", "user").put("content", text))
+        else history.put(JSONObject().put("role", "user").put("content", JSONArray()
+            .put(JSONObject().put("type", "text").put("text", "$text\n[User ne photo bheji hai — Biz vault/expense/contact tools ke liye 'last photo' yahi hai]"))
+            .put(JSONObject().put("type", "image_url").put("image_url", JSONObject().put("url", "data:image/jpeg;base64,$image")))))
         thread {
             var reply = ""
             val used = ArrayList<String>()
@@ -284,6 +347,11 @@ Rules:
             }
             val out = reply.ifBlank { if (used.isEmpty()) "Kuch nahi hua." else "Ho gaya ✅" } +
                 (if (used.isNotEmpty()) "\n\n" + used.distinct().joinToString(" · ") else "")
+            if (image != null && history.length() > userIdx) try {
+                history.put(userIdx, JSONObject().put("role", "user").put("content", "$text [📷 photo bheji thi]"))
+            } catch (_: Exception) {}
+            if (image != null && reply.startsWith("⚠️") && (reply.contains("image") || reply.contains("400") || reply.contains("vision")))
+                reply += "\n\nPhoto ke liye vision model chahiye — Settings mein OpenRouter + google/gemini-2.5-flash rakho."
             val planned = used.any { it.startsWith("✅") && (it.contains("remind") || it.contains("schedule") || it.contains("calendar")) }
             ui.post {
                 thinking.text = out
@@ -306,6 +374,12 @@ Rules:
         val t = tts
         if (!ttsReady || t == null) { WakeService.resume(); return }
         WakeService.pause()
+        val lang = when {
+            s.any { it.code in 0x0A80..0x0AFF } -> "gu-IN"
+            s.any { it.code in 0x0900..0x097F } -> "hi-IN"
+            else -> Prefs.lang
+        }
+        if (t.setLanguage(Locale.forLanguageTag(lang)) < 0) t.language = Locale.forLanguageTag("hi-IN")
         t.speak(s.replace(Regex("[*_#`⚠️✅⚙️]"), ""), TextToSpeech.QUEUE_FLUSH, null, "r" + System.currentTimeMillis())
     }
 

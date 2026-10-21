@@ -47,6 +47,7 @@ class TasksActivity : Activity() {
         if (rems.isEmpty()) empty("Koi reminder nahi. Bolo: \"5 baje yaad dilana GST file karna\"")
         rems.forEach { card(it, false) }
 
+        bizSection()
         healthSection()
 
         if (Prefs.briefOn) {
@@ -63,6 +64,39 @@ class TasksActivity : Activity() {
 
         box.addView(text("Powered by RAXVAAYAN AI", 11.5f, C.MUTED).apply { gravity = Gravity.CENTER },
             lp(MATCH, WRAP).apply { topMargin = dp(28) })
+    }
+
+    private fun inr(v: Double) = "₹" + "%,.0f".format(v)
+
+    private fun bizSection() {
+        val dues = Biz.dues(this)
+        section("💰 Lena baaki", dues.size)
+        if (dues.isEmpty()) empty("Bolo: \"Mehta se 45000 lena hai, har Monday yaad dilana\"")
+        dues.sortedByDescending { it.getDouble("amount") }.forEach { o ->
+            row("💰", "${o.getString("name")} — ${inr(o.getDouble("amount"))}", (o.optString("note").takeIf { it.isNotBlank() }?.let { "$it · " } ?: "") +
+                "agla reminder ${dayLabel(o.getLong("next"))}", {
+                    android.app.AlertDialog.Builder(this).setMessage("${o.getString("name")} ka poora payment aa gaya?")
+                        .setPositiveButton("Haan, clear") { _, _ -> Tools.run(More.Headless(this), "due_paid", JSONObject().put("name", o.getString("name"))); render() }
+                        .setNegativeButton("Nahi", null).show() }, "✓")
+        }
+        val bills = Biz.bills(this)
+        if (bills.isNotEmpty()) {
+            section("🧾 Bills / EMI", bills.size)
+            bills.sortedBy { Biz.nextBillDate(it) }.forEach { o -> val paid = Biz.billPaid(this, o)
+                row("🧾", o.getString("name") + (if (o.optDouble("amount", 0.0) > 0) " — " + inr(o.getDouble("amount")) else ""),
+                    if (paid) "Is mahine paid ✅" else "Due ${dayLabel(Biz.nextBillDate(o))} (${o.getInt("day")} tarikh)",
+                    if (paid) null else ({ Tools.run(More.Headless(this), "bill_paid", JSONObject().put("name", o.getString("name"))); render() }), "✓") }
+        }
+        val alerts = Market.alerts(this)
+        if (alerts.isNotEmpty()) {
+            section("🔔 Price alerts", alerts.size)
+            alerts.forEach { o -> row("🔔", "${o.getString("name")} ${if (o.getBoolean("above")) "▲ upar" else "▼ neeche"} ₹${o.getDouble("price")}", "Market time mein har 5 min check",
+                { Market.alertRemove(this, o.getString("id")); render() }) }
+        }
+        val bd = Biz.birthdays(this, 7)
+        if (bd.isNotEmpty()) { section("🎂 Birthdays — 7 din", bd.size); bd.forEach { row("🎂", it.name, dayLabel(it.date) + if (it.phone == null) " · number nahi" else " · 8:30 baje wish button aayega", null) } }
+        section("💸 Is mahine kharcha", -1)
+        empty("${inr(Biz.monthTotal(this))}  ·  bolo \"is mahine ka hisaab\" ya \"SMS se kharcha jodo\"")
     }
 
     private fun healthSection() {
